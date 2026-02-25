@@ -1,0 +1,98 @@
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  padding: var(--spacing-md);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+  background-color: rgba(30, 41, 59, 0.8);
+}
+
+.app-header h1 {
+  font-size: 1.25rem;
+  color: var(--color-text);
+  text-align: center;
+}
+
+.app-content {
+  flex: 1;
+  padding: var(--spacing-md);
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+  padding-bottom: 90px; /* Space for Bottom Nav + FAB */
+}
+
+.fab {
+  position: fixed;
+  bottom: 80px; /* Above nav bar */
+  right: var(--spacing-lg);
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+  z-index: 40;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.fab:hover {
+  background-color: var(--color-primary-hover);
+  transform: scale(1.05);
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-around;
+  padding: var(--spacing-sm) 0;
+  padding-bottom: calc(var(--spacing-sm) + env(safe-area-inset-bottom));
+  z-index: 30;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-md);
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.nav-item.active {
+  color: var(--color-primary);
+  background-color: rgba(139, 92, 246, 0.05);
+}
+
+@media (min-width: 640px) {
+  .fab {
+    bottom: var(--spacing-xl);
+    right: calc(50% - 380px);
+    right: var(--spacing-xl);
+  }
+  
+  /* Desktop Navigation could be different, but keeping bottom nav for now for simplicity/consistency */
+}

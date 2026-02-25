@@ -1,0 +1,109 @@
+.settlement-modal {
+  max-width: 400px;
+}
+
+.settlement-title {
+  font-size: 1.5rem;
+  color: var(--color-text);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.settlement-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.settlement-summary {
+  text-align: center;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  border-radius: var(--radius-lg);
+  color: white;
+}
+
+.settlement-text {
+  font-size: 0.9rem;
+  margin: 0.25rem 0;
+  opacity: 0.9;
+}
+
+.debtor-name,
+.creditor-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.settlement-amount {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+.settlement-breakdown {
+  background-color: var(--color-surface);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.5rem 0;
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.breakdown-divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: 0.75rem 0;
+}
+
+.total-item {
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.total-item strong {
+  font-size: 1.1rem;
+}
+
+.settlement-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-secondary,
+.btn-primary {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-border);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}

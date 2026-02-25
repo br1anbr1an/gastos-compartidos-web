@@ -1,0 +1,51 @@
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql  # Auto-init on first run
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend (FastAPI) ───────────────────────────────────────────────────
+  backend:
+    image: ${DOCKERHUB_USERNAME}/gastos-backend:latest
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── Frontend (Nginx + Vite build) ───────────────────────────────────────
+  frontend:
+    image: ${DOCKERHUB_USERNAME}/gastos-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    depends_on:
+      - backend
+
+  # ── Watchtower (auto-update) ────────────────────────────────────────────
+  watchtower:
+    image: containrrr/watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_POLL_INTERVAL: 300          # Check every 5 minutes
+      WATCHTOWER_CLEANUP: "true"             # Remove old images automatically
+      WATCHTOWER_INCLUDE_STOPPED: "false"
+    command: frontend backend                # Only watch these two services
+
+volumes:
+  postgres_data:

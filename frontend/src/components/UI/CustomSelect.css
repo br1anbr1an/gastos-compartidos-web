@@ -1,0 +1,83 @@
+.custom-select-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  width: 100%;
+}
+
+.custom-select-label {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.custom-select-trigger {
+  padding: var(--spacing-md);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  user-select: none;
+}
+
+.custom-select-trigger.open {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.arrow {
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.arrow.rotated {
+  transform: rotate(180deg);
+}
+
+.custom-select-options {
+  position: absolute; /* Using absolute but relative to body via Portal + top/left styles */
+  /* Top/Left/Width are set via inline styles */
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 100; /* Higher than Modal (50) */
+  max-height: 240px;
+  overflow-y: auto;
+  animation: fadeIn 0.1s ease-out;
+}
+
+.custom-option {
+  padding: var(--spacing-md);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--color-text);
+  transition: background-color 0.1s;
+}
+
+.custom-option:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.custom-option.selected {
+  background-color: rgba(139, 92, 246, 0.1); /* Primary color with opacity */
+  color: var(--color-primary);
+}
+
+.check-icon {
+  color: var(--color-primary);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
