@@ -35,17 +35,5 @@ services:
     depends_on:
       - backend
 
-  # ── Watchtower (auto-update) ────────────────────────────────────────────
-  watchtower:
-    image: containrrr/watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      WATCHTOWER_POLL_INTERVAL: 300          # Check every 5 minutes
-      WATCHTOWER_CLEANUP: "true"             # Remove old images automatically
-      WATCHTOWER_INCLUDE_STOPPED: "false"
-    command: frontend backend                # Only watch these two services
-
 volumes:
   postgres_data:

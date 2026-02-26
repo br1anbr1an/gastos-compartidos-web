@@ -1,16 +1,16 @@
-name: Build & Push Docker Images
+name: Build & Deploy
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:   # Allow manual trigger from GitHub UI
+    branches:
+      - main   # Build only
+      - prod   # Build + Deploy to homelab
+  workflow_dispatch:
 
 jobs:
-  build-and-push:
+  # ── Build & push images to Docker Hub ────────────────────────────────────
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,7 +24,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # ── Backend ──────────────────────────────────────────────────────────
       - name: Build and push backend
         uses: docker/build-push-action@v5
         with:
@@ -36,7 +35,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # ── Frontend ─────────────────────────────────────────────────────────
       - name: Build and push frontend
         uses: docker/build-push-action@v5
         with:
@@ -47,3 +45,5 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/gastos-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+
