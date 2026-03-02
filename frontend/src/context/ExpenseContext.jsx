@@ -18,34 +18,106 @@ export const ExpenseProvider = ({ children }) => {
   const [filterUserId, setFilterUserId] = useState('all');
   const [filterCategoryId, setFilterCategoryId] = useState('all');
   const [categories, setCategories] = useState([]);
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
+
+  const isAuthenticated = !!token && !!currentUser;
+
+  // --- Auth Actions ---
+  const login = async (email, password) => {
+    try {
+      const formData = new URLSearchParams();
+      formData.append('username', email);
+      formData.append('password', password);
+
+      const res = await fetch(`${API_URL}/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData
+      });
+
+      if (!res.ok) throw new Error('Credenciales inválidas');
+      
+      const data = await res.json();
+      setToken(data.access_token);
+      localStorage.setItem('token', data.access_token);
+      return true;
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
+    }
+  };
+
+  const register = async (name, email, password) => {
+    try {
+      const res = await fetch(`${API_URL}/users/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+
+      if (!res.ok) throw new Error('Error al registrar o el email ya existe');
+      
+      // Auto login after register
+      await login(email, password);
+      return true;
+    } catch (error) {
+      console.error("Register error:", error);
+      throw error;
+    }
+  };
+
+  const logout = () => {
+    setToken(null);
+    setCurrentUser(null);
+    setProjects([]);
+    setExpenses([]);
+    localStorage.removeItem('token');
+  };
+
+  // Helper for authenticated fetch
+  const authFetch = async (url, options = {}) => {
+    const headers = { ...options.headers };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return fetch(url, { ...options, headers });
+  };
 
   // --- Initial Data Fetch ---
   useEffect(() => {
     const initData = async () => {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
       try {
-        // 1. Fetch/Create User "Yo"
-        // In a real app this would be Auth. For now we auto-login "me@example.com"
-        const usersRes = await fetch(`${API_URL}/users/`);
-        const usersData = await usersRes.json();
-        
-        let me = usersData.find(u => u.email === 'me@example.com');
-        if (!me) {
-           const createRes = await fetch(`${API_URL}/users/`, {
-             method: 'POST',
-             headers: {'Content-Type': 'application/json'},
-             body: JSON.stringify({ name: 'Yo', email: 'me@example.com' })
-           });
-           me = await createRes.json();
+        // 1. Fetch current user
+        const userRes = await authFetch(`${API_URL}/users/me`);
+        if (!userRes.ok) {
+           if (userRes.status === 401) {
+             logout();
+           }
+           throw new Error('No autorizado');
         }
-        setCurrentUser(me);
-        setUsers(usersData.length ? usersData : [me]); // Update users list
+        const userData = await userRes.json();
+        setCurrentUser(userData);
+
+        // Fetch all users for lists
+        const allUsersRes = await authFetch(`${API_URL}/users/`);
+        if (allUsersRes.ok) {
+           setUsers(await allUsersRes.json());
+        } else {
+           setUsers([userData]); // Fallback
+        }
 
         // 2. Fetch Projects
-        const projectsRes = await fetch(`${API_URL}/projects/`);
+        const projectsRes = await authFetch(`${API_URL}/projects/`);
         const projectsData = await projectsRes.json();
         setProjects(projectsData);
 
-        const categoriesRes = await fetch(`${API_URL}/categories/`);
+        const categoriesRes = await authFetch(`${API_URL}/categories/`);
         const categoriesData = await categoriesRes.json();
         setCategories(categoriesData);
 
@@ -53,7 +125,7 @@ export const ExpenseProvider = ({ children }) => {
         let active = null;
         if (projectsData.length === 0) {
             // Create default project if none
-            const createPRes = await fetch(`${API_URL}/projects/`, {
+            const createPRes = await authFetch(`${API_URL}/projects/`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ name: 'Gastos Generales', status: 'in_progress' })
@@ -61,7 +133,7 @@ export const ExpenseProvider = ({ children }) => {
             active = await createPRes.json();
             setProjects([active]);
         } else {
-            const savedId = localStorage.getItem('activeProjectId');
+            const savedId = parseInt(localStorage.getItem('activeProjectId'));
             active = projectsData.find(p => p.id === savedId) || projectsData[0];
         }
         setCurrentProject(active);
@@ -74,18 +146,18 @@ export const ExpenseProvider = ({ children }) => {
     };
 
     initData();
-  }, []);
+  }, [token]);
 
   // --- Fetch Expenses when Project Changes ---
   useEffect(() => {
-    if (!currentProject) return;
+    if (!currentProject || !token) return;
     
     // Persist active selection
     localStorage.setItem('activeProjectId', currentProject.id);
 
-    const   fetchExpenses = async () => {
+    const fetchExpenses = async () => {
         try {
-            const res = await fetch(`${API_URL}/expenses/?project_id=${currentProject.id}`);
+            const res = await authFetch(`${API_URL}/expenses/?project_id=${currentProject.id}`);
             if (res.ok) {
                 const data = await res.json();
                 setExpenses(data);
@@ -95,14 +167,14 @@ export const ExpenseProvider = ({ children }) => {
         }
     };
     fetchExpenses();
-  }, [currentProject]);
+  }, [currentProject, token]);
 
 
   // --- Actions ---
 
   const addProject = async (name) => {
     try {
-        const res = await fetch(`${API_URL}/projects/`, {
+        const res = await authFetch(`${API_URL}/projects/`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ name, status: 'in_progress' })
@@ -123,16 +195,16 @@ export const ExpenseProvider = ({ children }) => {
   };
 
   const addExpense = async (expenseData) => {
-    if (!currentUser || !currentProject) return;
+    if (!isAuthenticated || !currentProject) return;
 
     const payload = {
         ...expenseData,
         project_id: currentProject.id,
-        user_id: currentUser.id
+        user_id: currentUser.id // backend actually overwrites this, but passing for sanity
     };
 
     try {
-        const res = await fetch(`${API_URL}/expenses/`, {
+        const res = await authFetch(`${API_URL}/expenses/`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
@@ -149,7 +221,7 @@ export const ExpenseProvider = ({ children }) => {
 
   const removeExpense = async (id) => {
     try {
-      const res = await fetch(`${API_URL}/expenses/${id}`, {
+      const res = await authFetch(`${API_URL}/expenses/${id}`, {
         method: 'DELETE'
       });
       
@@ -165,7 +237,7 @@ export const ExpenseProvider = ({ children }) => {
 
   const closeProject = async (projectId) => {
     try {
-      const res = await fetch(`${API_URL}/projects/${projectId}/close`, {
+      const res = await authFetch(`${API_URL}/projects/${projectId}/close`, {
         method: 'PATCH',
         headers: {'Content-Type': 'application/json'}
       });
@@ -241,17 +313,21 @@ export const ExpenseProvider = ({ children }) => {
         currentUser,
         currentProject,
         loading,
+        isAuthenticated,
+        token,
         filterUserId,
         setFilterUserId,
         filterCategoryId,
         setFilterCategoryId,
+        login,
+        logout,
+        register,
         addProject,
         switchProject,
         addExpense,
         removeExpense,
         closeProject,
-        
-        getExpensesByCurrentProject, // Keep API consistent
+        getExpensesByCurrentProject,
         getExpensesByCategory,
         formatCurrency,
         formatDate,
@@ -261,3 +337,4 @@ export const ExpenseProvider = ({ children }) => {
     </ExpenseContext.Provider>
   );
 };
+

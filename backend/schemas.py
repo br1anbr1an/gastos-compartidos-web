@@ -7,12 +7,23 @@ class UserBase(BaseModel):
     name: str
     email: str
 
+class UserCreate(UserBase):
+    password: str
+
 class User(UserBase):
     id: int
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+# Auth
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
 
 # Projects
 class ProjectCreate(BaseModel):
@@ -35,7 +46,7 @@ class ExpenseCreate(BaseModel):
     amount: float
     category_id: int
     date: date
-    user_id: int
+    user_id: Optional[int] = None
     project_id: int
 
 class Expense(BaseModel):

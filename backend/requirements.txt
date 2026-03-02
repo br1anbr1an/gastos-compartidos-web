@@ -5,3 +5,8 @@ psycopg2-binary
 pydantic
 python-dotenv
 shortuuid
+bcrypt
+python-jose[cryptography]
+python-multipart
+pytest
+httpx

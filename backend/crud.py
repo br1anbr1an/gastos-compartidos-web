@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 import models, schemas
+import auth
 
 # Categories
 def get_categories(db: Session, skip: int = 0, limit: int = 100):
@@ -37,9 +38,9 @@ def close_project(db: Session, project_id: int):
     return project
 
 # Expenses
-def get_expenses(db: Session, project_id: int, skip: int = 0, limit: int = 100, user_id: int = None):
+def get_expenses(db: Session, project_id: int, skip: int = 0, limit: int = 100, user_id: int = 0):
     query = db.query(models.Expense).filter(models.Expense.project_id == project_id)
-    if user_id:
+    if user_id > 0:
         query = query.filter(models.Expense.user_id == user_id)
     return query.offset(skip).limit(limit).all()
 
@@ -70,9 +71,22 @@ def delete_expense(db: Session, expense_id: int):
 def get_user_by_email(db: Session, email: str):
     return db.query(models.User).filter(models.User.email == email).first()
 
-def create_user(db: Session, user: schemas.UserBase):
-    db_user = models.User(**user.model_dump())
+def create_user(db: Session, user: schemas.UserCreate):
+    hashed_password = auth.get_password_hash(user.password)
+    db_user = models.User(
+        name=user.name,
+        email=user.email,
+        password_hash=hashed_password
+    )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
+
+def authenticate_user(db: Session, email: str, password: str):
+    user = get_user_by_email(db, email)
+    if not user:
+        return False
+    if not auth.verify_password(password, user.password_hash):
+        return False
+    return user
