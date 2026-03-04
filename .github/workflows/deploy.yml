@@ -11,7 +11,7 @@ jobs:
   # ── Build & push images to Docker Hub ────────────────────────────────────
   build:
     runs-on: ubuntu-latest
-    environment: ${{ github.ref == 'refs/heads/prod' && 'prod' || '' }}
+    environment: ${{ github.ref == 'refs/heads/prod' && 'production' || '' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
