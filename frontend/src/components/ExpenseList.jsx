@@ -45,6 +45,11 @@ export const ExpenseList = () => {
                     <span className="expense-user">
                       {users.find(u => u.id === expense.user_id)?.name || 'Anónimo'}
                     </span>
+                    {expense.is_loan && (
+                      <span className="expense-cat loan-badge" title="Este gasto no se divide a la mitad">
+                        Préstamo
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="expense-amount-actions">

@@ -264,12 +264,12 @@ export const ExpenseProvider = ({ children }) => {
     
     // Filter by user
     if (filterUserId !== 'all') {
-      filtered = filtered.filter(expense => expense.user_id === filterUserId);
+      filtered = filtered.filter(expense => parseInt(expense.user_id) === parseInt(filterUserId));
     }
     
     // Filter by category
     if (filterCategoryId !== 'all') {
-      filtered = filtered.filter(expense => expense.category_id === filterCategoryId);
+      filtered = filtered.filter(expense => parseInt(expense.category_id) === parseInt(filterCategoryId));
     }
     
     return filtered;
@@ -278,12 +278,11 @@ export const ExpenseProvider = ({ children }) => {
   const getExpensesByCategory = () => {
     const filteredExpenses = filterUserId === 'all' 
       ? expenses 
-      : expenses.filter(expense => expense.user_id === filterUserId);
+      : expenses.filter(expense => parseInt(expense.user_id) === parseInt(filterUserId));
     
     return filteredExpenses.reduce((acc, expense) => {
-      const category = categories.find(c => c.id === expense.category_id);
-      const categoryName = category?.name || 'Sin categoría';
-      acc[categoryName] = (acc[categoryName] || 0) + parseFloat(expense.amount);
+      const catId = expense.category_id || 'null';
+      acc[catId] = (acc[catId] || 0) + parseFloat(expense.amount);
       return acc;
     }, {});
   };

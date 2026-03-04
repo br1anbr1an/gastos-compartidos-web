@@ -3,11 +3,31 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from datetime import timedelta
 import crud, models, schemas, auth
 from database import engine, get_db
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
+
+def seed_categories():
+    db = next(get_db())
+    categories_to_seed = [
+        "Despensa", "Restaurantes", "Michis", "Transporte", 
+        "Mantenimiento Auto", "Mantenimiento Casa", "Salud", 
+        "Regalos", "Gasolina", "Servicios", "Otros"
+    ]
+    existing = db.query(models.Category.name).all()
+    existing_names = [name[0] for name in existing]
+    
+    for cat_name in categories_to_seed:
+        if cat_name not in existing_names:
+            new_cat = models.Category(name=cat_name, active=True)
+            db.add(new_cat)
+    db.commit()
+    db.close()
+
+seed_categories()
 
 app = FastAPI()
 
@@ -30,7 +50,8 @@ def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth2Passw
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = auth.create_access_token(data={"sub": user.email})
+    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(data={"sub": user.email}, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/users/me", response_model=schemas.User)

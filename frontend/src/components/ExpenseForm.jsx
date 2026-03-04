@@ -16,6 +16,7 @@ export const ExpenseForm = ({ onClose }) => {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState(null);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isLoan, setIsLoan] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -26,12 +27,14 @@ export const ExpenseForm = ({ onClose }) => {
       amount: parseFloat(amount),
       category_id: category.id,
       date: new Date(date).toISOString(),
+      is_loan: isLoan,
     });
 
     // Reset form or close
     setDescription('');
     setAmount('');
     setCategory(null);
+    setIsLoan(false);
     onClose();
   };
 
@@ -91,6 +94,20 @@ export const ExpenseForm = ({ onClose }) => {
           onChange={(e) => setDate(e.target.value)}
           required
         />
+      </div>
+
+      <div className="form-group checkbox-group">
+        <label className="checkbox-label">
+          <span>Es un préstamo (no se divide y se paga íntegro)</span>
+          <div className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={isLoan}
+              onChange={(e) => setIsLoan(e.target.checked)}
+            />
+            <span className="slider"></span>
+          </div>
+        </label>
       </div>
 
       <button type="submit" className="submit-button">

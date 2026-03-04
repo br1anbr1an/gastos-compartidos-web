@@ -45,24 +45,47 @@ export const Dashboard = () => {
     const user1 = users[0];
     const user2 = users[1];
     
-    const user1Total = projectExpenses
+    // Separate regular and loan expenses
+    const regularExpenses = projectExpenses.filter(e => !e.is_loan);
+    const loanExpenses = projectExpenses.filter(e => e.is_loan);
+    
+    // 1. Calculate Shared Base Debt
+    const user1Shared = regularExpenses
       .filter(e => e.user_id === user1.id)
       .reduce((sum, e) => sum + parseFloat(e.amount), 0);
-    
-    const user2Total = projectExpenses
+      
+    const user2Shared = regularExpenses
       .filter(e => e.user_id === user2.id)
       .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+      
+    const sharedDebtFromUser2ToUser1 = (user1Shared - user2Shared) / 2;
     
-    const halfTotal = total / 2;
-    const difference = Math.abs(user1Total - user2Total) / 2;
+    // 2. Add Direct Debt from Loans
+    const user1Loans = loanExpenses
+      .filter(e => e.user_id === user1.id)
+      .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+      
+    const user2Loans = loanExpenses
+      .filter(e => e.user_id === user2.id)
+      .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+      
+    const loanDebtFromUser2ToUser1 = user1Loans - user2Loans;
     
-    const debtor = user1Total < user2Total ? user1.name : user2.name;
-    const creditor = user1Total < user2Total ? user2.name : user1.name;
+    // Total Debt from User 2 to User 1
+    const totalDebtToUser1 = sharedDebtFromUser2ToUser1 + loanDebtFromUser2ToUser1;
+    
+    // Note: total expense amount includes both for reference
+    const user1Total = user1Shared + user1Loans;
+    const user2Total = user2Shared + user2Loans;
+    
+    const amount = Math.abs(totalDebtToUser1);
+    const debtor = totalDebtToUser1 > 0 ? user2.name : user1.name;
+    const creditor = totalDebtToUser1 > 0 ? user1.name : user2.name;
     
     return {
       debtor,
       creditor,
-      amount: formatCurrency(difference),
+      amount: formatCurrency(amount),
       user1Name: user1.name,
       user2Name: user2.name,
       user1Total: formatCurrency(user1Total),
@@ -72,6 +95,8 @@ export const Dashboard = () => {
   };
 
   const handleCloseProject = () => {
+    setFilterUserId('all');
+    setFilterCategoryId('all');
     setShowSettlement(true);
   };
 
@@ -176,17 +201,19 @@ export const Dashboard = () => {
       </div>
 
       <div className="category-scroll">
-        {Object.entries(byCategory).map(([cat, amount]) => {
-          const category = categories.find(c => c.name === cat);
-          const isSelected = filterCategoryId === category?.id;
+        {Object.entries(byCategory).map(([catIdStr, amount]) => {
+          const categoryId = catIdStr === 'null' ? null : parseInt(catIdStr);
+          const category = categories.find(c => c.id === categoryId);
+          const isSelected = filterCategoryId === categoryId;
+          const catName = category?.name || 'Sin categoría';
           
           return (
             <div 
-              key={cat} 
+              key={catIdStr} 
               className={`category-card ${isSelected ? 'selected' : ''}`}
-              onClick={() => setFilterCategoryId(isSelected ? 'all' : category?.id)}
+              onClick={() => setFilterCategoryId(isSelected ? 'all' : categoryId)}
             >
-              <span className="cat-name">{cat}</span>
+              <span className="cat-name">{catName}</span>
               <span className="cat-amount">{formatCurrency(amount)}</span>
             </div>
           );

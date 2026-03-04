@@ -1,13 +1,26 @@
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
+import { useState } from 'react';
 import './SettlementModal.css';
 
 export const SettlementModal = ({ isOpen, onClose, settlement, onConfirm }) => {
+  const [isClosing, setIsClosing] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleConfirm = async () => {
+    setIsClosing(true);
+    // Combine the API call and an artificial delay using Promise.all
+    await Promise.all([
+      onConfirm(),
+      new Promise(resolve => setTimeout(resolve, 800))
+    ]);
+    setIsClosing(false);
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content settlement-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="Cerrar">
+        <button className="modal-close" onClick={onClose} aria-label="Cerrar" disabled={isClosing}>
           <X size={24} />
         </button>
         
@@ -42,11 +55,18 @@ export const SettlementModal = ({ isOpen, onClose, settlement, onConfirm }) => {
         </div>
 
         <div className="settlement-actions">
-          <button className="btn-secondary" onClick={onClose}>
+          <button className="btn-secondary" onClick={onClose} disabled={isClosing}>
             Cancelar
           </button>
-          <button className="btn-primary" onClick={onConfirm}>
-            Confirmar Pago y Cerrar
+          <button className="btn-primary" onClick={handleConfirm} disabled={isClosing}>
+            {isClosing ? (
+              <>
+                <Loader2 size={18} className="spinner" />
+                Cerrando...
+              </>
+            ) : (
+              'Confirmar Pago y Cerrar'
+            )}
           </button>
         </div>
       </div>
