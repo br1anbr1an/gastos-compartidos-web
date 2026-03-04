@@ -48,6 +48,7 @@ class ExpenseCreate(BaseModel):
     date: date
     user_id: Optional[int] = None
     project_id: int
+    is_loan: bool = False
 
 class Expense(BaseModel):
     id: int
@@ -57,6 +58,7 @@ class Expense(BaseModel):
     date: date
     user_id: int
     project_id: int
+    is_loan: bool
     created_at: datetime
 
     class Config:

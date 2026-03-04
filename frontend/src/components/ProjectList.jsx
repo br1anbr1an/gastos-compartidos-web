@@ -49,25 +49,47 @@ export const ProjectList = () => {
     const user1 = users[0];
     const user2 = users[1];
     
-    const user1Total = expenses
+    // Separate regular and loan expenses
+    const regularExpenses = expenses.filter(e => !e.is_loan);
+    const loanExpenses = expenses.filter(e => e.is_loan);
+    
+    // 1. Calculate Shared Base Debt
+    const user1Shared = regularExpenses
       .filter(e => e.user_id === user1.id)
       .reduce((sum, e) => sum + parseFloat(e.amount), 0);
-    
-    const user2Total = expenses
+      
+    const user2Shared = regularExpenses
       .filter(e => e.user_id === user2.id)
       .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+      
+    // The person who paid less owes half the difference to the person who paid more
+    // Positive means user2 owes user1, negative means user1 owes user2
+    const sharedDebtFromUser2ToUser1 = (user1Shared - user2Shared) / 2;
     
-    const difference = Math.abs(user1Total - user2Total) / 2;
+    // 2. Add Direct Debt from Loans
+    const user1Loans = loanExpenses
+      .filter(e => e.user_id === user1.id)
+      .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+      
+    const user2Loans = loanExpenses
+      .filter(e => e.user_id === user2.id)
+      .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+      
+    const loanDebtFromUser2ToUser1 = user1Loans - user2Loans;
     
-    if (difference === 0) return null;
+    // Total Debt from User 2 to User 1
+    const totalDebtToUser1 = sharedDebtFromUser2ToUser1 + loanDebtFromUser2ToUser1;
     
-    const debtor = user1Total < user2Total ? user1.name : user2.name;
-    const creditor = user1Total < user2Total ? user2.name : user1.name;
+    if (totalDebtToUser1 === 0) return null;
+    
+    const amount = Math.abs(totalDebtToUser1);
+    const debtor = totalDebtToUser1 > 0 ? user2.name : user1.name;
+    const creditor = totalDebtToUser1 > 0 ? user1.name : user2.name;
     
     return {
       debtor,
       creditor,
-      amount: difference
+      amount
     };
   };
 
@@ -225,13 +247,13 @@ export const ProjectList = () => {
               <div className="project-total">
                 {formatCurrency(total)}
               </div>
-              <button 
+              {/* <button 
                 className="export-btn"
                 onClick={(e) => exportToExcel(project, e)}
                 title="Exportar a Excel"
               >
                 <FileDown size={18} />
-              </button>
+              </button> */}
               {currentProject?.id === project.id && (
                 <div className="active-check">
                   <Check size={16} />
