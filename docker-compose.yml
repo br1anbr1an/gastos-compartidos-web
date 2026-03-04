@@ -40,7 +40,7 @@ services:
     restart: unless-stopped
     ports:
       # La app web estará disponible en: http://homelab-ip:${APP_PORT}
-      - "${APP_PORT:-8080}:80"
+      - "${APP_PORT:-9090}:80"
     depends_on:
       - backend
     networks:
