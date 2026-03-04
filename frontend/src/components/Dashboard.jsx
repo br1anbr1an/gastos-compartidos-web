@@ -1,7 +1,7 @@
 import { useExpenses } from '../context/ExpenseContext';
 import { SettlementModal } from './SettlementModal';
-import { DoorOpen } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { DoorOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import './Dashboard.css';
 
 export const Dashboard = () => {
@@ -37,7 +37,15 @@ export const Dashboard = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  if (!currentProject) return null;
+  const scrollRef = useRef(null);
+
+  const scrollCarousel = (direction) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    // Scroll by 3 card widths (card ~130px + gap ~8px = ~138px each)
+    const scrollAmount = 138 * 3;
+    container.scrollBy({ left: direction === 'right' ? scrollAmount : -scrollAmount, behavior: 'smooth' });
+  };
 
   const calculateSettlement = () => {
     if (users.length < 2) return null;
@@ -200,24 +208,48 @@ export const Dashboard = () => {
         )}
       </div>
 
-      <div className="category-scroll">
-        {Object.entries(byCategory).map(([catIdStr, amount]) => {
-          const categoryId = catIdStr === 'null' ? null : parseInt(catIdStr);
-          const category = categories.find(c => c.id === categoryId);
-          const isSelected = filterCategoryId === categoryId;
-          const catName = category?.name || 'Sin categoría';
-          
-          return (
-            <div 
-              key={catIdStr} 
-              className={`category-card ${isSelected ? 'selected' : ''}`}
-              onClick={() => setFilterCategoryId(isSelected ? 'all' : categoryId)}
-            >
-              <span className="cat-name">{catName}</span>
-              <span className="cat-amount">{formatCurrency(amount)}</span>
-            </div>
-          );
-        })}
+      <div className="category-scroll-wrapper">
+        {Object.keys(byCategory).length > 5 && (
+          <button
+            className="carousel-arrow carousel-arrow-left"
+            onClick={() => scrollCarousel('left')}
+            aria-label="Desplazar izquierda"
+          >
+            <ChevronLeft size={18} />
+          </button>
+        )}
+
+        <div className="category-scroll" ref={scrollRef}>
+          {Object.entries(byCategory)
+            .sort(([, a], [, b]) => b - a)
+            .map(([catIdStr, amount]) => {
+            const categoryId = catIdStr === 'null' ? null : parseInt(catIdStr);
+            const category = categories.find(c => c.id === categoryId);
+            const isSelected = filterCategoryId === categoryId;
+            const catName = category?.name || 'Sin categoría';
+            
+            return (
+              <div 
+                key={catIdStr} 
+                className={`category-card ${isSelected ? 'selected' : ''}`}
+                onClick={() => setFilterCategoryId(isSelected ? 'all' : categoryId)}
+              >
+                <span className="cat-name">{catName}</span>
+                <span className="cat-amount">{formatCurrency(amount)}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {Object.keys(byCategory).length > 5 && (
+          <button
+            className="carousel-arrow carousel-arrow-right"
+            onClick={() => scrollCarousel('right')}
+            aria-label="Desplazar derecha"
+          >
+            <ChevronRight size={18} />
+          </button>
+        )}
       </div>
 
       {settlement && (
