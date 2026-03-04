@@ -19,7 +19,7 @@ services:
 
   # ── Backend (FastAPI) ───────────────────────────────────────────────────
   backend:
-    image: ${DOCKERHUB_USERNAME}/gastos-backend:latest
+    image: ghcr.io/${GHCR_OWNER}/gastos-backend:latest
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL}
@@ -36,7 +36,7 @@ services:
 
   # ── Frontend (Nginx + Vite build) ───────────────────────────────────────
   frontend:
-    image: ${DOCKERHUB_USERNAME}/gastos-frontend:latest
+    image: ghcr.io/${GHCR_OWNER}/gastos-frontend:latest
     restart: unless-stopped
     ports:
       # La app web estará disponible en: http://homelab-ip:${APP_PORT}
