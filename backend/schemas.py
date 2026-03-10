@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import date, datetime
 from typing import Optional
 
@@ -14,8 +14,7 @@ class User(UserBase):
     id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Auth
 class Token(BaseModel):
@@ -41,8 +40,7 @@ class Project(BaseModel):
     is_private: bool
     user_id: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Expenses
 class ExpenseCreate(BaseModel):
@@ -65,8 +63,7 @@ class Expense(BaseModel):
     is_loan: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CategoryCreate(BaseModel):
     name: str
@@ -76,8 +73,7 @@ class Category(BaseModel):
     name: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Reactions
 class ReactionBase(BaseModel):
@@ -92,8 +88,7 @@ class Reaction(ReactionBase):
     user_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Updated Expense to include reactions
 class ExpenseOut(Expense):

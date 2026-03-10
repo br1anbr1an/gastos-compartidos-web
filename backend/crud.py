@@ -28,10 +28,10 @@ def get_project(db: Session, project_id: int):
     return db.query(models.Project).filter(models.Project.id == project_id).first()
 
 def close_project(db: Session, project_id: int):
-    from datetime import datetime
+    from datetime import date, datetime, UTC
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if project:
-        project.closed_at = datetime.utcnow()
+        project.closed_at = datetime.now(UTC)
         project.status = "paid"
         db.commit()
         db.refresh(project)

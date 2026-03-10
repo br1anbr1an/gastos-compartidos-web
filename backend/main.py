@@ -3,15 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import timedelta
+from datetime import timedelta, datetime, UTC
+from contextlib import asynccontextmanager
 import crud, models, schemas, auth
 from database import engine, get_db
 
 # Create tables (Handled by Alembic migrations)
 # models.Base.metadata.create_all(bind=engine)
 
-def seed_categories():
-    db = next(get_db())
+def seed_categories(db: Session):
     categories_to_seed = [
         "Despensa", "Restaurantes", "Michis", "Transporte", 
         "Mantenimiento Auto", "Mantenimiento Casa", "Salud", 
@@ -25,11 +25,18 @@ def seed_categories():
             new_cat = models.Category(name=cat_name, active=True)
             db.add(new_cat)
     db.commit()
-    db.close()
 
-seed_categories()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup seeding
+    db = next(get_db())
+    try:
+        seed_categories(db)
+    finally:
+        db.close()
+    yield
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # CORS
 app.add_middleware(

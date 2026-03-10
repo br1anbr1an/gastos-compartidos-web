@@ -9,6 +9,9 @@ import os
 # Add the parent directory to sys.path so we can import the backend modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+# Set a dummy DATABASE_URL for tests to avoid Postgres connection attempts during module import
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
 from main import app
 from database import get_db, Base
 import crud
