@@ -10,7 +10,7 @@ import { Plus, LayoutDashboard, FolderOpen, LogOut } from 'lucide-react'
 import './App.css'
 
 function MainLayout() {
-  const { isAuthenticated, loading, logout } = useExpenses();
+  const { isAuthenticated, loading, logout, currentProject } = useExpenses();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState('dashboard');
 
@@ -42,7 +42,7 @@ function MainLayout() {
         )}
       </main>
 
-      {currentView === 'dashboard' && (
+      {currentProject.status === 'in_progress' && currentView === 'dashboard' && (
         <button 
           className="fab" 
           onClick={() => setIsModalOpen(true)}

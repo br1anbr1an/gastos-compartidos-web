@@ -134,7 +134,7 @@
   color: var(--color-success);
 }
 
-.status-badge.paid {
+.status-badge.paid, .status-badge.private, .status-badge.public {
   background-color: rgba(148, 163, 184, 0.1);
   color: var(--color-text-muted);
 }
