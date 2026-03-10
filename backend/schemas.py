@@ -29,6 +29,8 @@ class TokenData(BaseModel):
 class ProjectCreate(BaseModel):
     name: str
     status: str = "in_progress"
+    is_private: bool = False
+    user_id: Optional[int] = None
 
 class Project(BaseModel):
     id: int
@@ -36,6 +38,8 @@ class Project(BaseModel):
     status: str
     created_at: datetime
     closed_at: Optional[datetime] = None
+    is_private: bool
+    user_id: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -74,3 +78,24 @@ class Category(BaseModel):
 
     class Config:
         from_attributes = True
+
+# Reactions
+class ReactionBase(BaseModel):
+    emoji: str
+
+class ReactionCreate(ReactionBase):
+    pass
+
+class Reaction(ReactionBase):
+    id: int
+    expense_id: int
+    user_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Updated Expense to include reactions
+class ExpenseOut(Expense):
+    reactions: list[Reaction] = []
+    user_name: Optional[str] = None

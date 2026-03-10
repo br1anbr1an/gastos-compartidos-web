@@ -7,8 +7,8 @@ from datetime import timedelta
 import crud, models, schemas, auth
 from database import engine, get_db
 
-# Create tables
-models.Base.metadata.create_all(bind=engine)
+# Create tables (Handled by Alembic migrations)
+# models.Base.metadata.create_all(bind=engine)
 
 def seed_categories():
     db = next(get_db())
@@ -93,7 +93,7 @@ def close_project(project_id: int, db: Session = Depends(get_db), current_user: 
     return project
 
 # --- Expenses ---
-@app.get("/expenses/", response_model=List[schemas.Expense])
+@app.get("/expenses/", response_model=List[schemas.ExpenseOut])
 def read_expenses(
     project_id: int,
     skip: int = 0, 
@@ -103,6 +103,31 @@ def read_expenses(
 ):
     expenses = crud.get_expenses(db, project_id=project_id, skip=skip, limit=limit, user_id=user_id)
     return expenses
+
+@app.post("/expenses/{expense_id}/reactions", response_model=Optional[schemas.Reaction])
+def create_or_update_reaction(
+    expense_id: int,
+    reaction: schemas.ReactionCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    # Check if expense exists
+    expense = db.query(models.Expense).filter(models.Expense.id == expense_id).first()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    return crud.upsert_reaction(db, expense_id=expense_id, user_id=current_user.id, emoji=reaction.emoji)
+
+@app.delete("/expenses/{expense_id}/reactions")
+def remove_reaction(
+    expense_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    success = crud.delete_reaction(db, expense_id=expense_id, user_id=current_user.id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Reaction not found")
+    return {"success": True}
 
 @app.post("/expenses/", response_model=schemas.Expense)
 def create_expense(expense: schemas.ExpenseCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):

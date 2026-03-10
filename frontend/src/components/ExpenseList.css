@@ -115,3 +115,118 @@
   border-radius: 4px;
   color: #a0aec0;
 }
+
+/* Reactions */
+.expense-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+}
+
+.reaction-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+.reaction-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.reaction-pill.active {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.reaction-pill .emoji {
+  font-size: 1rem;
+}
+
+.reaction-pill .count {
+  font-weight: 700;
+}
+
+.add-reaction-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.add-reaction-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  background: transparent;
+  opacity: 0.4;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.add-reaction-container:hover .add-reaction-trigger {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
+}
+
+.emoji-picker {
+  position: absolute;
+  top: -46px; /* Show above */
+  left: 0;
+  display: flex;
+  gap: 4px;
+  background: #2d3748; /* Dark elevated bg */
+  padding: 6px;
+  border-radius: 24px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px) scale(0.95);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.add-reaction-container:hover .emoji-picker {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.emoji-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  font-size: 1.25rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.emoji-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.2);
+}
+
+.emoji-btn.selected {
+  background: rgba(59, 130, 246, 0.2);
+}
