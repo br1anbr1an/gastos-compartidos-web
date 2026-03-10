@@ -19,6 +19,7 @@ services:
 
   # ── Backend (FastAPI) ───────────────────────────────────────────────────
   backend:
+    build: ./backend
     image: ghcr.io/${GHCR_OWNER}/gastos-backend:latest
     restart: unless-stopped
     environment:
@@ -28,7 +29,7 @@ services:
       # Puerto externo (host):puerto interno (container)
       # Útil para acceder directamente al API desde el homelab: http://homelab-ip:8000
       - "${BACKEND_PORT:-8000}:8000"
-    command: sh -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"
+    command: sh -c "python -m alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"
     volumes:
       - ./backend:/app
     depends_on:
@@ -39,6 +40,7 @@ services:
 
   # ── Frontend (Nginx + Vite build) ───────────────────────────────────────
   frontend:
+    build: ./frontend
     image: ghcr.io/${GHCR_OWNER}/gastos-frontend:latest
     restart: unless-stopped
     ports:
