@@ -3,15 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import timedelta
+from datetime import timedelta, datetime, UTC
+from contextlib import asynccontextmanager
 import crud, models, schemas, auth
 from database import engine, get_db
 
-# Create tables
-models.Base.metadata.create_all(bind=engine)
+# Create tables (Handled by Alembic migrations)
+# models.Base.metadata.create_all(bind=engine)
 
-def seed_categories():
-    db = next(get_db())
+def seed_categories(db: Session):
     categories_to_seed = [
         "Despensa", "Restaurantes", "Michis", "Transporte", 
         "Mantenimiento Auto", "Mantenimiento Casa", "Salud", 
@@ -25,11 +25,18 @@ def seed_categories():
             new_cat = models.Category(name=cat_name, active=True)
             db.add(new_cat)
     db.commit()
-    db.close()
 
-seed_categories()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup seeding
+    db = next(get_db())
+    try:
+        seed_categories(db)
+    finally:
+        db.close()
+    yield
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # CORS
 app.add_middleware(
@@ -93,7 +100,7 @@ def close_project(project_id: int, db: Session = Depends(get_db), current_user: 
     return project
 
 # --- Expenses ---
-@app.get("/expenses/", response_model=List[schemas.Expense])
+@app.get("/expenses/", response_model=List[schemas.ExpenseOut])
 def read_expenses(
     project_id: int,
     skip: int = 0, 
@@ -103,6 +110,53 @@ def read_expenses(
 ):
     expenses = crud.get_expenses(db, project_id=project_id, skip=skip, limit=limit, user_id=user_id)
     return expenses
+
+@app.post("/expenses/{expense_id}/reactions", response_model=Optional[schemas.Reaction])
+def create_or_update_reaction(
+    expense_id: int,
+    reaction: schemas.ReactionCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    # Check if expense exists
+    expense = db.query(models.Expense).filter(models.Expense.id == expense_id).first()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    return crud.upsert_reaction(db, expense_id=expense_id, user_id=current_user.id, emoji=reaction.emoji)
+
+@app.delete("/expenses/{expense_id}/reactions")
+def remove_reaction(
+    expense_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    success = crud.delete_reaction(db, expense_id=expense_id, user_id=current_user.id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Reaction not found")
+    return {"success": True}
+
+@app.patch("/expenses/{expense_id}", response_model=schemas.Expense)
+def update_expense(
+    expense_id: int,
+    expense_update: schemas.ExpenseUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    # Security check: Does it belong to the user?
+    db_expense = db.query(models.Expense).filter(models.Expense.id == expense_id).first()
+    if not db_expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    if db_expense.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to edit this expense")
+    
+    result = crud.update_expense(db, expense_id=expense_id, expense_update=expense_update)
+    
+    if result == "PROJECT_CLOSED":
+        raise HTTPException(status_code=403, detail="Cannot edit expenses from closed projects")
+    
+    return result
 
 @app.post("/expenses/", response_model=schemas.Expense)
 def create_expense(expense: schemas.ExpenseCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):

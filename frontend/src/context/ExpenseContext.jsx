@@ -128,7 +128,7 @@ export const ExpenseProvider = ({ children }) => {
             const createPRes = await authFetch(`${API_URL}/projects/`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ name: 'Gastos Generales', status: 'in_progress' })
+                body: JSON.stringify({ name: 'Gastos Generales', status: 'in_progress', user_id: userData.id })
             });
             active = await createPRes.json();
             setProjects([active]);
@@ -172,12 +172,17 @@ export const ExpenseProvider = ({ children }) => {
 
   // --- Actions ---
 
-  const addProject = async (name) => {
+  const addProject = async (name, isPrivate = false) => {
     try {
         const res = await authFetch(`${API_URL}/projects/`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ name, status: 'in_progress' })
+            body: JSON.stringify({ 
+              name, 
+              status: 'in_progress',
+              is_private: isPrivate,
+              user_id: currentUser?.id
+            })
         });
         if (res.ok) {
             const newProject = await res.json();
@@ -213,10 +218,33 @@ export const ExpenseProvider = ({ children }) => {
         if (res.ok) {
             const newExpense = await res.json();
             setExpenses(prev => [newExpense, ...prev]);
+            return true;
         }
     } catch (error) {
         console.error("Error creating expense:", error);
     }
+    return false;
+  };
+
+  const updateExpense = async (id, expenseData) => {
+    if (!isAuthenticated) return;
+
+    try {
+        const res = await authFetch(`${API_URL}/expenses/${id}`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(expenseData)
+        });
+        
+        if (res.ok) {
+            const updatedExpense = await res.json();
+            setExpenses(prev => prev.map(e => e.id === id ? updatedExpense : e));
+            return true;
+        }
+    } catch (error) {
+        console.error("Error updating expense:", error);
+    }
+    return false;
   };
 
   const removeExpense = async (id) => {
@@ -254,6 +282,61 @@ export const ExpenseProvider = ({ children }) => {
     } catch (error) {
       console.error("Error closing project:", error);
       return false;
+    }
+  };
+
+  const addReaction = async (expenseId, emoji) => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await authFetch(`${API_URL}/expenses/${expenseId}/reactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emoji })
+      });
+      if (res.ok) {
+        const updatedReaction = await res.json();
+        // Update expenses locally
+        setExpenses(prev => prev.map(exp => {
+          if (exp.id === expenseId) {
+            let newReactions = [...(exp.reactions || [])];
+            if (updatedReaction === null) {
+              // Toggle off
+              newReactions = newReactions.filter(r => r.user_id !== currentUser.id);
+            } else {
+              const existingIdx = newReactions.findIndex(r => r.user_id === currentUser.id);
+              if (existingIdx > -1) {
+                newReactions[existingIdx] = updatedReaction;
+              } else {
+                newReactions.push(updatedReaction);
+              }
+            }
+            return { ...exp, reactions: newReactions };
+          }
+          return exp;
+        }));
+      }
+    } catch (error) {
+      console.error("Error adding reaction:", error);
+    }
+  };
+
+  const removeReaction = async (expenseId) => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await authFetch(`${API_URL}/expenses/${expenseId}/reactions`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setExpenses(prev => prev.map(exp => {
+          if (exp.id === expenseId) {
+            const newReactions = (exp.reactions || []).filter(r => r.user_id !== currentUser.id);
+            return { ...exp, reactions: newReactions };
+          }
+          return exp;
+        }));
+      }
+    } catch (error) {
+      console.error("Error removing reaction:", error);
     }
   };
 
@@ -324,8 +407,11 @@ export const ExpenseProvider = ({ children }) => {
         addProject,
         switchProject,
         addExpense,
+        updateExpense,
         removeExpense,
         closeProject,
+        addReaction,
+        removeReaction,
         getExpensesByCurrentProject,
         getExpensesByCategory,
         formatCurrency,

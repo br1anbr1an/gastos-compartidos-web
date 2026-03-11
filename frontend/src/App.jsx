@@ -10,7 +10,7 @@ import { Plus, LayoutDashboard, FolderOpen, LogOut } from 'lucide-react'
 import './App.css'
 
 function MainLayout() {
-  const { isAuthenticated, loading, logout } = useExpenses();
+  const { isAuthenticated, loading, logout, currentProject } = useExpenses();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState('dashboard');
 
@@ -25,7 +25,7 @@ function MainLayout() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>{currentView === 'dashboard' ? 'Gastos Compartidos' : 'Mis Proyectos'}</h1>
+        <h1>{currentView === 'dashboard' ? 'Registro de Gastos' : 'Mis Proyectos'}</h1>
         <button onClick={logout} className="header-icon-btn" aria-label="Cerrar Sesión" title="Cerrar Sesión">
           <LogOut size={24} />
         </button>
@@ -42,7 +42,7 @@ function MainLayout() {
         )}
       </main>
 
-      {currentView === 'dashboard' && (
+      {currentProject.status === 'in_progress' && currentView === 'dashboard' && (
         <button 
           className="fab" 
           onClick={() => setIsModalOpen(true)}
@@ -72,7 +72,6 @@ function MainLayout() {
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
-        title="Nuevo Gasto"
       >
         <ExpenseForm onClose={() => setIsModalOpen(false)} />
       </Modal>

@@ -67,7 +67,7 @@ def test_create_expense(db_session, test_user, test_project, test_category):
     # In schemas.ExpenseCreate, user_id is not included. It's added in main.py.
     # Let's import the SQL model directly to test inserting an expense with a user
     import models
-    expense_data = expense_in.model_dump()
+    expense_data = expense_in.model_dump(exclude_none=True)
     expense_data["user_id"] = test_user.id
     db_expense = models.Expense(**expense_data)
     db_session.add(db_expense)

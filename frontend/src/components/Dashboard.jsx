@@ -131,7 +131,7 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      <div className={`filter-controls ${isScrolled ? 'hidden' : ''}`}>
+      <div className={`filter-controls ${isScrolled || currentProject.is_private ? 'hidden' : ''}`}>
         <button 
           className={`filter-btn ${filterUserId === 'all' ? 'active' : ''}`}
           onClick={() => setFilterUserId('all')}
@@ -172,7 +172,9 @@ export const Dashboard = () => {
             
             const user1Percentage = total > 0 ? (user1Total / total) * 100 : 50;
             const user2Percentage = total > 0 ? (user2Total / total) * 100 : 50;
-
+            
+            // Logic: Show if it's NOT private OR if current user is the owner
+            if (currentProject.is_private) return null;
             return (
               <>
                 <div className="user-stat-side">
@@ -258,6 +260,7 @@ export const Dashboard = () => {
           onClose={() => setShowSettlement(false)}
           settlement={settlement}
           onConfirm={handleConfirmSettlement}
+          currentProject={currentProject}
         />
       )}
     </div>

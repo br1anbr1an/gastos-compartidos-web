@@ -28,10 +28,10 @@ def get_project(db: Session, project_id: int):
     return db.query(models.Project).filter(models.Project.id == project_id).first()
 
 def close_project(db: Session, project_id: int):
-    from datetime import datetime
+    from datetime import date, datetime, UTC
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if project:
-        project.closed_at = datetime.utcnow()
+        project.closed_at = datetime.now(UTC)
         project.status = "paid"
         db.commit()
         db.refresh(project)
@@ -42,13 +42,64 @@ def get_expenses(db: Session, project_id: int, skip: int = 0, limit: int = 100, 
     query = db.query(models.Expense).filter(models.Expense.project_id == project_id)
     if user_id > 0:
         query = query.filter(models.Expense.user_id == user_id)
-    return query.offset(skip).limit(limit).all()
+    
+    expenses = query.offset(skip).limit(limit).all()
+    
+    # Enrich with user_name for the schema
+    for exp in expenses:
+        if exp.user:
+            exp.user_name = exp.user.name
+        else:
+            exp.user_name = "Unknown"
+    
+    return expenses
 
 
 
 def create_expense(db: Session, expense: schemas.ExpenseCreate):
-    db_expense = models.Expense(**expense.model_dump())
+    expense_data = expense.model_dump()
+    items_data = expense_data.pop("items", []) or []
+    
+    db_expense = models.Expense(**expense_data)
     db.add(db_expense)
+    db.commit()
+    db.refresh(db_expense)
+    
+    for item in items_data:
+        db_item = models.ExpenseItem(**item, expense_id=db_expense.id)
+        db.add(db_item)
+    
+    if items_data:
+        db.commit()
+        db.refresh(db_expense)
+        
+    return db_expense
+
+def update_expense(db: Session, expense_id: int, expense_update: schemas.ExpenseUpdate):
+    db_expense = db.query(models.Expense).filter(models.Expense.id == expense_id).first()
+    if not db_expense:
+        return None
+    
+    # Check if project is closed
+    project = db.query(models.Project).filter(models.Project.id == db_expense.project_id).first()
+    if project.status == 'paid':
+        return "PROJECT_CLOSED"
+    
+    # Update fields
+    update_data = expense_update.model_dump(exclude_unset=True)
+    items_data = update_data.pop("items", None)
+    
+    for key, value in update_data.items():
+        setattr(db_expense, key, value)
+    
+    # Update Items if provided
+    if items_data is not None:
+        # Simplest sync: Delete all and recreate
+        db.query(models.ExpenseItem).filter(models.ExpenseItem.expense_id == expense_id).delete()
+        for item in items_data:
+            db_item = models.ExpenseItem(**item, expense_id=expense_id)
+            db.add(db_item)
+    
     db.commit()
     db.refresh(db_expense)
     return db_expense
@@ -66,6 +117,49 @@ def delete_expense(db: Session, expense_id: int):
     db.delete(expense)
     db.commit()
     return True
+
+# Reactions
+def upsert_reaction(db: Session, expense_id: int, user_id: int, emoji: str):
+    # Check if reaction exists
+    db_reaction = db.query(models.ExpenseReaction).filter(
+        models.ExpenseReaction.expense_id == expense_id,
+        models.ExpenseReaction.user_id == user_id
+    ).first()
+    
+    if db_reaction:
+        if db_reaction.emoji == emoji:
+            # If same emoji, remove it (toggle off)
+            db.delete(db_reaction)
+            db.commit()
+            return None
+        else:
+            # Update emoji
+            db_reaction.emoji = emoji
+            db.commit()
+            db.refresh(db_reaction)
+            return db_reaction
+    else:
+        # Create new
+        db_reaction = models.ExpenseReaction(
+            expense_id=expense_id,
+            user_id=user_id,
+            emoji=emoji
+        )
+        db.add(db_reaction)
+        db.commit()
+        db.refresh(db_reaction)
+        return db_reaction
+
+def delete_reaction(db: Session, expense_id: int, user_id: int):
+    db_reaction = db.query(models.ExpenseReaction).filter(
+        models.ExpenseReaction.expense_id == expense_id,
+        models.ExpenseReaction.user_id == user_id
+    ).first()
+    if db_reaction:
+        db.delete(db_reaction)
+        db.commit()
+        return True
+    return False
 
 # Users (Seed helper)
 def get_user_by_email(db: Session, email: str):
