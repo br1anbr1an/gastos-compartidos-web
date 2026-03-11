@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useExpenses } from '../context/ExpenseContext';
-import { Trash2, SmilePlus } from 'lucide-react';
+import { Trash2, SmilePlus, Pencil } from 'lucide-react';
+import { ExpenseForm } from './ExpenseForm';
 import './ExpenseList.css';
 
 export const ExpenseList = () => {
@@ -14,7 +16,10 @@ export const ExpenseList = () => {
     currentUser,
     addReaction
   } = useExpenses();
+  const [editingId, setEditingId] = useState(null);
   const expenses = getExpensesByCurrentProject();
+// ... (omitting groupedExpenses and sortedDates for brevity, will apply carefully)
+// Actual replacement below
 
   const EMOJIS = ['😂', '❤️', '😮', '😡', '👍', '😋'];
 
@@ -54,6 +59,18 @@ export const ExpenseList = () => {
                 return acc;
               }, {});
               const myReaction = reactions.find(r => r.user_id === currentUser?.id)?.emoji;
+              const isEditing = editingId === expense.id;
+
+              if (isEditing) {
+                return (
+                  <div key={expense.id} className="expense-item editing">
+                    <ExpenseForm 
+                      editingExpense={expense} 
+                      onClose={() => setEditingId(null)} 
+                    />
+                  </div>
+                );
+              }
 
               return (
                 <div key={expense.id} className="expense-item">
@@ -104,13 +121,22 @@ export const ExpenseList = () => {
                   <div className="expense-amount-actions">
                     <span className="expense-amount">{formatCurrency(expense.amount)}</span>
                     {currentUser?.id === expense.user_id && !currentProject?.closed_at && (
-                      <button 
-                        className="delete-btn"
-                        onClick={() => removeExpense(expense.id)}
-                        aria-label="Eliminar gasto"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      <div className="item-actions">
+                        <button 
+                          className="edit-btn"
+                          onClick={() => setEditingId(expense.id)}
+                          aria-label="Editar gasto"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button 
+                          className="delete-btn"
+                          onClick={() => removeExpense(expense.id)}
+                          aria-label="Eliminar gasto"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

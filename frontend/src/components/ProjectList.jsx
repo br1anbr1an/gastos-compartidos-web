@@ -199,32 +199,39 @@ export const ProjectList = () => {
       </div>
 
       {isCreating && (
-        <form className="new-project-form expense-form" onSubmit={handleCreate}>
-          <input
-            type="text"
-            value={newProjectName}
-            onChange={(e) => setNewProjectName(e.target.value)}
-            placeholder="Nombre del proyecto..."
-            autoFocus
-          />
-          <button type="submit" disabled={!newProjectName.trim()}>
-            Crear
-          </button>
-          <button type="button" onClick={() => setIsCreating(false)}>
-            Cancelar
-          </button>
-          <div className="form-group checkbox-group">
-            <label className="checkbox-label">
-              <span>Privado</span>
-              <div className="toggle-switch">
-                <input
-                  type="checkbox"
-                  checked={isPrivate}
-                  onChange={(e) => setIsPrivate(e.target.checked)}
-                />
-                <span className="slider"></span>
+        <form className="prj-new-form" onSubmit={handleCreate}>
+          <div className="prj-form-content">
+            <div className="prj-input-row">
+              <input
+                type="text"
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                placeholder="Nombre del nuevo proyecto..."
+                autoFocus
+                className="prj-name-input"
+              />
+              
+              <div className="prj-toggle-wrapper">
+                <span className="prj-toggle-label">{isPrivate ? 'Privado' : 'Público'}</span>
+                <label className="prj-toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={isPrivate}
+                    onChange={(e) => setIsPrivate(e.target.checked)}
+                  />
+                  <span className="prj-slider prj-round"></span>
+                </label>
               </div>
-            </label>
+            </div>
+
+            <div className="prj-form-actions">
+              <button type="button" className="prj-cancel-btn" onClick={() => setIsCreating(false)}>
+                Cancelar
+              </button>
+              <button type="submit" className="prj-submit-btn" disabled={!newProjectName.trim()}>
+                Crear Proyecto
+              </button>
+            </div>
           </div>
         </form>
       )}

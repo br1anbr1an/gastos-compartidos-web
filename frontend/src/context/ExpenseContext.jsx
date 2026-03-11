@@ -218,10 +218,33 @@ export const ExpenseProvider = ({ children }) => {
         if (res.ok) {
             const newExpense = await res.json();
             setExpenses(prev => [newExpense, ...prev]);
+            return true;
         }
     } catch (error) {
         console.error("Error creating expense:", error);
     }
+    return false;
+  };
+
+  const updateExpense = async (id, expenseData) => {
+    if (!isAuthenticated) return;
+
+    try {
+        const res = await authFetch(`${API_URL}/expenses/${id}`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(expenseData)
+        });
+        
+        if (res.ok) {
+            const updatedExpense = await res.json();
+            setExpenses(prev => prev.map(e => e.id === id ? updatedExpense : e));
+            return true;
+        }
+    } catch (error) {
+        console.error("Error updating expense:", error);
+    }
+    return false;
   };
 
   const removeExpense = async (id) => {
@@ -384,6 +407,7 @@ export const ExpenseProvider = ({ children }) => {
         addProject,
         switchProject,
         addExpense,
+        updateExpense,
         removeExpense,
         closeProject,
         addReaction,

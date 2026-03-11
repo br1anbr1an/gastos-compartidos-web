@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useExpenses } from '../context/ExpenseContext';
 import { CustomSelect } from './UI/CustomSelect';
+import { X } from 'lucide-react';
 import './ExpenseForm.css';
 
 const CATEGORIES = [
@@ -10,32 +11,67 @@ const CATEGORIES = [
   'Servicios', 'Transporte'
 ];
 
-export const ExpenseForm = ({ onClose }) => {
-  const { addExpense, currentProject, categories } = useExpenses();
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState(null);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [isLoan, setIsLoan] = useState(false);
+export const ExpenseForm = ({ onClose, editingExpense = null }) => {
+  const { addExpense, updateExpense, currentProject, categories } = useExpenses();
+  
+  // Track initial state to detect changes
+  const initialData = useMemo(() => ({
+    description: editingExpense?.description || '',
+    amount: editingExpense?.amount?.toString() || '',
+    category_id: editingExpense?.category_id || null,
+    date: editingExpense 
+      ? new Date(editingExpense.date).toISOString().split('T')[0] 
+      : new Date().toISOString().split('T')[0],
+    is_loan: editingExpense?.is_loan || false
+  }), [editingExpense]);
 
-  const handleSubmit = (e) => {
+  const [description, setDescription] = useState(initialData.description);
+  const [amount, setAmount] = useState(initialData.amount);
+  const [category, setCategory] = useState(
+    initialData.category_id ? categories.find(c => c.id === initialData.category_id) : null
+  );
+  const [date, setDate] = useState(initialData.date);
+  const [isLoan, setIsLoan] = useState(initialData.is_loan);
+
+  const isDirty = 
+    description !== initialData.description ||
+    amount.toString() !== initialData.amount ||
+    (category?.id || null) !== initialData.category_id ||
+    date !== initialData.date ||
+    isLoan !== initialData.is_loan;
+
+  const handleClose = () => {
+    if (isDirty) {
+      if (window.confirm('Tienes cambios sin guardar. ¿Estás seguro de que quieres cerrar?')) {
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!description || !amount || !category) return;
     
-    addExpense({
+    const expenseData = {
       description,
       amount: parseFloat(amount),
       category_id: category.id,
-      date: new Date(date).toISOString(),
+      date: date,
       is_loan: isLoan,
-    });
+    };
 
-    // Reset form or close
-    setDescription('');
-    setAmount('');
-    setCategory(null);
-    setIsLoan(false);
-    onClose();
+    let success = false;
+    if (editingExpense) {
+      success = await updateExpense(editingExpense.id, expenseData);
+    } else {
+      success = await addExpense(expenseData);
+    }
+
+    if (success) {
+      onClose();
+    }
   };
 
   if (!currentProject) {
@@ -48,6 +84,10 @@ export const ExpenseForm = ({ onClose }) => {
 
   return (
     <form className="expense-form" onSubmit={handleSubmit}>
+      <button type="button" className="form-close-btn" onClick={handleClose} title="Cerrar">
+        <X size={20} />
+      </button>
+
       <div className="form-group">
         <label htmlFor="description">Descripción</label>
         <input
@@ -111,7 +151,7 @@ export const ExpenseForm = ({ onClose }) => {
       </div>
 
       <button type="submit" className="submit-button">
-        Guardar Gasto
+        {editingExpense ? 'Actualizar Gasto' : 'Guardar Gasto'}
       </button>
     </form>
   );

@@ -63,6 +63,25 @@ def create_expense(db: Session, expense: schemas.ExpenseCreate):
     db.refresh(db_expense)
     return db_expense
 
+def update_expense(db: Session, expense_id: int, expense_update: schemas.ExpenseUpdate):
+    db_expense = db.query(models.Expense).filter(models.Expense.id == expense_id).first()
+    if not db_expense:
+        return None
+    
+    # Check if project is closed
+    project = db.query(models.Project).filter(models.Project.id == db_expense.project_id).first()
+    if project.status == 'paid':
+        return "PROJECT_CLOSED"
+    
+    # Update fields
+    update_data = expense_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_expense, key, value)
+    
+    db.commit()
+    db.refresh(db_expense)
+    return db_expense
+
 def delete_expense(db: Session, expense_id: int):
     expense = db.query(models.Expense).filter(models.Expense.id == expense_id).first()
     if not expense:

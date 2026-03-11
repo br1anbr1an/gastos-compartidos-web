@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from datetime import date, datetime
+import datetime
 from typing import Optional
 
 # Users
@@ -12,7 +12,7 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     id: int
-    created_at: datetime
+    created_at: datetime.datetime
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -35,8 +35,8 @@ class Project(BaseModel):
     id: int
     name: str
     status: str
-    created_at: datetime
-    closed_at: Optional[datetime] = None
+    created_at: datetime.datetime
+    closed_at: Optional[datetime.datetime] = None
     is_private: bool
     user_id: Optional[int] = None
 
@@ -47,21 +47,28 @@ class ExpenseCreate(BaseModel):
     description: str
     amount: float
     category_id: int
-    date: date
+    date: datetime.date
     user_id: Optional[int] = None
     project_id: int
     is_loan: bool = False
+class ExpenseUpdate(BaseModel):
+    description: Optional[str] = None
+    amount: Optional[float] = None
+    category_id: Optional[int] = None
+    date: Optional[datetime.date] = None
+    is_loan: Optional[bool] = None
+    project_id: Optional[int] = None
 
 class Expense(BaseModel):
     id: int
     description: str
     amount: float
     category_id: int
-    date: date
+    date: datetime.date
     user_id: int
     project_id: int
     is_loan: bool
-    created_at: datetime
+    created_at: datetime.datetime
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -71,7 +78,7 @@ class CategoryCreate(BaseModel):
 class Category(BaseModel):
     id: int
     name: str
-    created_at: datetime
+    created_at: datetime.datetime
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -86,7 +93,7 @@ class Reaction(ReactionBase):
     id: int
     expense_id: int
     user_id: int
-    created_at: datetime
+    created_at: datetime.datetime
 
     model_config = ConfigDict(from_attributes=True)
 
