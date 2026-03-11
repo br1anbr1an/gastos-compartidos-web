@@ -46,6 +46,7 @@ class Expense(Base):
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
     user = relationship("User")
     reactions = relationship("ExpenseReaction", back_populates="expense", cascade="all, delete-orphan")
+    items = relationship("ExpenseItem", back_populates="expense", cascade="all, delete-orphan")
 
 class ExpenseReaction(Base):
     __tablename__ = "expense_reactions"
@@ -57,3 +58,13 @@ class ExpenseReaction(Base):
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
     expense = relationship("Expense", back_populates="reactions")
     user = relationship("User")
+
+class ExpenseItem(Base):
+    __tablename__ = "expense_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    description = Column(String, nullable=False)
+    amount = Column(DECIMAL(10, 2), nullable=False)
+    expense_id = Column(Integer, ForeignKey("expenses.id", ondelete="CASCADE"), nullable=False)
+    
+    expense = relationship("Expense", back_populates="items")

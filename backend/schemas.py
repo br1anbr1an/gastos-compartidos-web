@@ -42,6 +42,20 @@ class Project(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+# Expense Items
+class ExpenseItemBase(BaseModel):
+    description: str
+    amount: float
+
+class ExpenseItemCreate(ExpenseItemBase):
+    pass
+
+class ExpenseItem(ExpenseItemBase):
+    id: int
+    expense_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
 # Expenses
 class ExpenseCreate(BaseModel):
     description: str
@@ -51,6 +65,8 @@ class ExpenseCreate(BaseModel):
     user_id: Optional[int] = None
     project_id: int
     is_loan: bool = False
+    items: Optional[list[ExpenseItemCreate]] = None
+
 class ExpenseUpdate(BaseModel):
     description: Optional[str] = None
     amount: Optional[float] = None
@@ -58,6 +74,7 @@ class ExpenseUpdate(BaseModel):
     date: Optional[datetime.date] = None
     is_loan: Optional[bool] = None
     project_id: Optional[int] = None
+    items: Optional[list[ExpenseItemCreate]] = None
 
 class Expense(BaseModel):
     id: int
@@ -69,6 +86,7 @@ class Expense(BaseModel):
     project_id: int
     is_loan: bool
     created_at: datetime.datetime
+    items: list[ExpenseItem] = []
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -259,7 +259,7 @@ export const ProjectList = () => {
                 <div className="project-header">
                   <div className="project-title-section">
                     <h3>{project.name}</h3>
-                    <div class="expense-meta">
+                    <div className="expense-meta">
                       <span className={`status-badge ${project.is_private ? 'private' : 'public'}`}>
                       {project.is_private ? 'Privado' : 'Público'}
                       </span>

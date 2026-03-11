@@ -108,11 +108,12 @@
 }
 
 .expense-item.editing {
-  background-color: var(--color-surface-hover);
-  border: 1px solid var(--color-primary);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
   flex-direction: column;
   align-items: stretch;
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
+  margin: var(--spacing-xs) 0;
 }
 
 .delete-btn {
@@ -255,4 +256,98 @@
 
 .emoji-btn.selected {
   background: rgba(59, 130, 246, 0.2);
+}
+
+/* Detailed Items in List */
+.expense-item-container {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.expense-item-container:has(.expense-item.expanded) {
+  border-color: var(--color-border);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.expense-item {
+  padding: var(--spacing-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.expense-desc-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.expand-btn {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0.7;
+}
+
+.expand-btn:hover {
+  opacity: 1;
+  background-color: var(--color-surface-hover);
+}
+
+.expense-details-expanded {
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sub-items-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sub-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-left: var(--spacing-md);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.sub-item-desc {
+  position: relative;
+}
+
+.sub-item-desc::before {
+  content: "•";
+  position: absolute;
+  left: -12px;
+  color: var(--color-primary);
+}
+
+.sub-item-amount {
+  font-weight: 500;
+  color: var(--color-text);
 }

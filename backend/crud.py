@@ -57,10 +57,22 @@ def get_expenses(db: Session, project_id: int, skip: int = 0, limit: int = 100, 
 
 
 def create_expense(db: Session, expense: schemas.ExpenseCreate):
-    db_expense = models.Expense(**expense.model_dump())
+    expense_data = expense.model_dump()
+    items_data = expense_data.pop("items", []) or []
+    
+    db_expense = models.Expense(**expense_data)
     db.add(db_expense)
     db.commit()
     db.refresh(db_expense)
+    
+    for item in items_data:
+        db_item = models.ExpenseItem(**item, expense_id=db_expense.id)
+        db.add(db_item)
+    
+    if items_data:
+        db.commit()
+        db.refresh(db_expense)
+        
     return db_expense
 
 def update_expense(db: Session, expense_id: int, expense_update: schemas.ExpenseUpdate):
@@ -75,8 +87,18 @@ def update_expense(db: Session, expense_id: int, expense_update: schemas.Expense
     
     # Update fields
     update_data = expense_update.model_dump(exclude_unset=True)
+    items_data = update_data.pop("items", None)
+    
     for key, value in update_data.items():
         setattr(db_expense, key, value)
+    
+    # Update Items if provided
+    if items_data is not None:
+        # Simplest sync: Delete all and recreate
+        db.query(models.ExpenseItem).filter(models.ExpenseItem.expense_id == expense_id).delete()
+        for item in items_data:
+            db_item = models.ExpenseItem(**item, expense_id=expense_id)
+            db.add(db_item)
     
     db.commit()
     db.refresh(db_expense)
