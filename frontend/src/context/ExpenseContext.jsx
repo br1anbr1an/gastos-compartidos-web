@@ -128,7 +128,7 @@ export const ExpenseProvider = ({ children }) => {
             const createPRes = await authFetch(`${API_URL}/projects/`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ name: 'Gastos Generales', status: 'in_progress' })
+                body: JSON.stringify({ name: 'Gastos Generales', status: 'in_progress', user_id: userData.id })
             });
             active = await createPRes.json();
             setProjects([active]);
