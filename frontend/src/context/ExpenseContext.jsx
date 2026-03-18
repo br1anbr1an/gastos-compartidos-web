@@ -378,7 +378,10 @@ export const ExpenseProvider = ({ children }) => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
+    // "YYYY-MM-DD" se interpreta como UTC medianoche → se desfasa un día en UTC-6.
+    // Añadimos T12:00:00 para anclar al mediodía local y evitar el desfase.
+    const date = new Date(`${dateString}T12:00:00`);
+    return date.toLocaleDateString('es-MX', {
       weekday: 'short',
       day: 'numeric',
       month: 'short',
