@@ -51,11 +51,22 @@ def test_create_and_get_project(db_session):
     assert fetched.status == "in_progress"
 
 def test_project_last_activity_at(db_session: Session, test_user, test_project, test_category):
+    # Use a timezone-naive comparison for local sqlite compatibility, 
+    # but ensure we don't mix aware/naive if the driver returns aware.
     past_date = datetime.datetime(2020, 1, 1)
     
+    def get_activity():
+        res = db_session.query(models.Project.last_activity_at).filter(models.Project.id == test_project.id).first()
+        val = res[0]
+        # If the DB returns an aware datetime, make past_date aware too
+        nonlocal past_date
+        if val and val.tzinfo is not None and past_date.tzinfo is None:
+            past_date = past_date.replace(tzinfo=datetime.timezone.utc)
+        return val
+
     def reset_activity():
         db_session.query(models.Project).filter(models.Project.id == test_project.id).update(
-            {"last_activity_at": past_date}
+            {"last_activity_at": datetime.datetime(2010, 1, 1)}
         )
         db_session.commit()
 
@@ -71,7 +82,7 @@ def test_project_last_activity_at(db_session: Session, test_user, test_project, 
     )
     db_expense = crud.create_expense(db_session, expense_data)
     
-    after_create = db_session.query(models.Project).filter(models.Project.id == test_project.id).first().last_activity_at
+    after_create = get_activity()
     assert after_create > past_date
 
     # 2. Test Modify
@@ -79,21 +90,21 @@ def test_project_last_activity_at(db_session: Session, test_user, test_project, 
     expense_update = schemas.ExpenseUpdate(amount=200.0)
     crud.update_expense(db_session, db_expense.id, expense_update)
     
-    after_update = db_session.query(models.Project).filter(models.Project.id == test_project.id).first().last_activity_at
+    after_update = get_activity()
     assert after_update > past_date
 
     # 3. Test Upsert reaction
     reset_activity()
     crud.upsert_reaction(db_session, db_expense.id, test_user.id, "👍")
     
-    after_reaction = db_session.query(models.Project).filter(models.Project.id == test_project.id).first().last_activity_at
+    after_reaction = get_activity()
     assert after_reaction > past_date
 
     # 4. Test Delete
     reset_activity()
     crud.delete_expense(db_session, db_expense.id)
     
-    after_delete = db_session.query(models.Project).filter(models.Project.id == test_project.id).first().last_activity_at
+    after_delete = get_activity()
     assert after_delete > past_date
 
 
