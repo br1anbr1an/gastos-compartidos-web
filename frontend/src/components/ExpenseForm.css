@@ -59,6 +59,20 @@
   box-sizing: border-box;
 }
 
+/* Chrome, Safari, Edge, Opera */
+.expense-form input[type=number]::-webkit-outer-spin-button,
+.expense-form input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+.expense-form input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 
 
 .form-group input:focus {

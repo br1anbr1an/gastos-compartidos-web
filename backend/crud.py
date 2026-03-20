@@ -2,6 +2,16 @@ from sqlalchemy.orm import Session
 import models, schemas
 import auth
 
+def touch_project(db: Session, project_id: int):
+    """Bumps last_activity_at on the project to trigger SSE streams."""
+    from sqlalchemy import update, func
+    db.execute(update(models.Project).where(models.Project.id == project_id).values(last_activity_at=func.now()))
+
+def touch_project_by_expense(db: Session, expense_id: int):
+    expense = db.query(models.Expense.project_id).filter(models.Expense.id == expense_id).first()
+    if expense:
+        touch_project(db, expense[0])
+
 # Categories
 def get_categories(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Category).filter(models.Category.active == True).offset(skip).limit(limit).all()
@@ -33,6 +43,7 @@ def close_project(db: Session, project_id: int):
     if project:
         project.closed_at = datetime.now(UTC)
         project.status = "paid"
+        touch_project(db, project_id)
         db.commit()
         db.refresh(project)
     return project
@@ -62,6 +73,7 @@ def create_expense(db: Session, expense: schemas.ExpenseCreate):
     
     db_expense = models.Expense(**expense_data)
     db.add(db_expense)
+    touch_project(db, db_expense.project_id)
     db.commit()
     db.refresh(db_expense)
     
@@ -100,6 +112,7 @@ def update_expense(db: Session, expense_id: int, expense_update: schemas.Expense
             db_item = models.ExpenseItem(**item, expense_id=expense_id)
             db.add(db_item)
     
+    touch_project(db, db_expense.project_id)
     db.commit()
     db.refresh(db_expense)
     return db_expense
@@ -113,7 +126,7 @@ def delete_expense(db: Session, expense_id: int):
     project = db.query(models.Project).filter(models.Project.id == expense.project_id).first()
     if project.status == 'paid':
         return False  # Cannot delete expenses from closed projects
-    
+    touch_project(db, expense.project_id)
     db.delete(expense)
     db.commit()
     return True
@@ -130,11 +143,13 @@ def upsert_reaction(db: Session, expense_id: int, user_id: int, emoji: str):
         if db_reaction.emoji == emoji:
             # If same emoji, remove it (toggle off)
             db.delete(db_reaction)
+            touch_project_by_expense(db, expense_id)
             db.commit()
             return None
         else:
             # Update emoji
             db_reaction.emoji = emoji
+            touch_project_by_expense(db, expense_id)
             db.commit()
             db.refresh(db_reaction)
             return db_reaction
@@ -146,6 +161,7 @@ def upsert_reaction(db: Session, expense_id: int, user_id: int, emoji: str):
             emoji=emoji
         )
         db.add(db_reaction)
+        touch_project_by_expense(db, expense_id)
         db.commit()
         db.refresh(db_reaction)
         return db_reaction
@@ -157,6 +173,7 @@ def delete_reaction(db: Session, expense_id: int, user_id: int):
     ).first()
     if db_reaction:
         db.delete(db_reaction)
+        touch_project_by_expense(db, expense_id)
         db.commit()
         return True
     return False

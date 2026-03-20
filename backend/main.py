@@ -1,10 +1,13 @@
-from fastapi import FastAPI, Depends, HTTPException, Query, status
+from fastapi import FastAPI, Depends, HTTPException, Query, status, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import timedelta, datetime, UTC
 from contextlib import asynccontextmanager
+import asyncio
+import json
 import crud, models, schemas, auth
 from database import engine, get_db
 
@@ -172,3 +175,57 @@ def delete_expense(expense_id: int, db: Session = Depends(get_db), current_user:
     return {"success": True}
 
 
+# --- SSE: Real-time expense updates ---
+@app.get("/stream")
+async def global_stream(
+    request: Request,
+    token: str = Query(...),
+):
+    """Server-Sent Events endpoint. Emite un evento cuando cualquier proyecto visible cambia."""
+    try:
+        user = auth.get_current_user_from_token(token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    async def event_generator():
+        from fastapi.concurrency import run_in_threadpool
+        from sqlalchemy import func
+        last_activity_at = None
+
+        def fetch_max_activity():
+            db = next(get_db())
+            try:
+                # Max activity of public projects OR private projects owned by user
+                query = db.query(func.max(models.Project.last_activity_at)).filter(
+                    (models.Project.is_private == False) | (models.Project.user_id == user.id)
+                )
+                return query.scalar()
+            finally:
+                db.close()
+
+        while True:
+            if await request.is_disconnected():
+                break
+
+            try:
+                current_max = await run_in_threadpool(fetch_max_activity)
+                current_str = str(current_max) if current_max else None
+
+                if last_activity_at is not None and current_str != last_activity_at:
+                    payload = json.dumps({"updated_at": current_str})
+                    yield f"data: {payload}\n\n"
+
+                last_activity_at = current_str
+            except Exception as e:
+                yield f"event: error\ndata: {str(e)}\n\n"
+
+            await asyncio.sleep(3)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )

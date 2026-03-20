@@ -60,3 +60,20 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if user is None:
         raise credentials_exception
     return user
+
+
+def get_current_user_from_token(token: str):
+    """
+    Versión sin Depends de get_current_user.
+    Usada por el endpoint SSE, donde el token llega como query param
+    (EventSource del browser no soporta headers custom).
+    Lanza ValueError si el token es inválido.
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise ValueError("Invalid token: no email")
+        return email
+    except JWTError as e:
+        raise ValueError(f"Invalid token: {e}")

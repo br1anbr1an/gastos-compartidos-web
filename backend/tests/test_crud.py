@@ -1,6 +1,9 @@
+from sqlalchemy.orm import Session
 import pytest
 import crud
 import schemas
+import models
+import datetime
 
 def test_create_category(db_session):
     category_in = schemas.CategoryCreate(name="Groceries")
@@ -46,6 +49,72 @@ def test_create_and_get_project(db_session):
     assert fetched is not None
     assert fetched.name == "Vacation Fund"
     assert fetched.status == "in_progress"
+
+def test_project_last_activity_at(db_session: Session, test_user, test_project, test_category):
+    past_date = datetime.datetime(2020, 1, 1)
+    
+    def reset_activity():
+        db_session.query(models.Project).filter(models.Project.id == test_project.id).update(
+            {"last_activity_at": past_date}
+        )
+        db_session.commit()
+
+    # 1. Test Create
+    reset_activity()
+    expense_data = schemas.ExpenseCreate(
+        description="Test for activity",
+        amount=100.0,
+        category_id=test_category.id,
+        date=datetime.date.today(),
+        is_loan=False,
+        project_id=test_project.id
+    )
+    db_expense = crud.create_expense(db_session, expense_data)
+    
+    after_create = db_session.query(models.Project).filter(models.Project.id == test_project.id).first().last_activity_at
+    assert after_create > past_date
+
+    # 2. Test Modify
+    reset_activity()
+    expense_update = schemas.ExpenseUpdate(amount=200.0)
+    crud.update_expense(db_session, db_expense.id, expense_update)
+    
+    after_update = db_session.query(models.Project).filter(models.Project.id == test_project.id).first().last_activity_at
+    assert after_update > past_date
+
+    # 3. Test Upsert reaction
+    reset_activity()
+    crud.upsert_reaction(db_session, db_expense.id, test_user.id, "👍")
+    
+    after_reaction = db_session.query(models.Project).filter(models.Project.id == test_project.id).first().last_activity_at
+    assert after_reaction > past_date
+
+    # 4. Test Delete
+    reset_activity()
+    crud.delete_expense(db_session, db_expense.id)
+    
+    after_delete = db_session.query(models.Project).filter(models.Project.id == test_project.id).first().last_activity_at
+    assert after_delete > past_date
+
+
+def test_create_expense_with_items(db_session: Session, test_user, test_project, test_category):
+    from datetime import date
+    expense_in = schemas.ExpenseCreate(
+        description="Dinner",
+        amount=50.25,
+        category_id=test_category.id,
+        date=date.today(),
+        project_id=test_project.id,
+        is_loan=False,
+        items=[
+            schemas.ExpenseItemCreate(description="Food", amount=30.0),
+            schemas.ExpenseItemCreate(description="Drinks", amount=20.25)
+        ]
+    )
+    db_expense = crud.create_expense(db_session, expense_in)
+    assert db_expense.id is not None
+    assert len(db_expense.items) == 2
+    assert db_expense.items[0].description == "Food"
 
 def test_close_project(db_session, test_project):
     closed = crud.close_project(db_session, test_project.id)
