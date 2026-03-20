@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 
 const ExpenseContext = createContext();
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+export const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const useExpenses = () => {
   return useContext(ExpenseContext);
@@ -497,6 +497,8 @@ export const ExpenseProvider = ({ children }) => {
         formatDate,
         isSyncing,
         refreshExpenses,
+        token,
+        API_URL,
       }}
     >
       {children}
