@@ -20,7 +20,7 @@ export const ProjectList = () => {
 
       for (const project of projects) {
         try {
-          const res = await fetch(`${API_URL}/expenses/?project_id=${project.id}`);
+          const res = await fetch(`${API_URL}/ledger/?project_id=${project.id}`);
           if (res.ok) {
             const data = await res.json();
             expensesMap[project.id] = data;

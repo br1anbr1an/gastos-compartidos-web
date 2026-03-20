@@ -158,7 +158,7 @@ export const ExpenseProvider = ({ children }) => {
       setIsSyncing(true);
       hasNewPendingChangesRef.current = false;
       
-      const res = await authFetch(`${API_URL}/expenses/?project_id=${currentProject.id}`);
+      const res = await authFetch(`${API_URL}/ledger/?project_id=${currentProject.id}`);
       if (res.ok) {
         setExpenses(await res.json());
       }
@@ -285,7 +285,7 @@ export const ExpenseProvider = ({ children }) => {
     };
 
     try {
-        const res = await authFetch(`${API_URL}/expenses/`, {
+        const res = await authFetch(`${API_URL}/ledger/`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
@@ -306,7 +306,7 @@ export const ExpenseProvider = ({ children }) => {
     if (!isAuthenticated) return;
 
     try {
-        const res = await authFetch(`${API_URL}/expenses/${id}`, {
+        const res = await authFetch(`${API_URL}/ledger/${id}`, {
             method: 'PATCH',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(expenseData)
@@ -325,7 +325,7 @@ export const ExpenseProvider = ({ children }) => {
 
   const removeExpense = async (id) => {
     try {
-      const res = await authFetch(`${API_URL}/expenses/${id}`, {
+      const res = await authFetch(`${API_URL}/ledger/${id}`, {
         method: 'DELETE'
       });
       
@@ -364,7 +364,7 @@ export const ExpenseProvider = ({ children }) => {
   const addReaction = async (expenseId, emoji) => {
     if (!isAuthenticated) return;
     try {
-      const res = await authFetch(`${API_URL}/expenses/${expenseId}/reactions`, {
+      const res = await authFetch(`${API_URL}/ledger/${expenseId}/reactions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ emoji })
@@ -399,7 +399,7 @@ export const ExpenseProvider = ({ children }) => {
   const removeReaction = async (expenseId) => {
     if (!isAuthenticated) return;
     try {
-      const res = await authFetch(`${API_URL}/expenses/${expenseId}/reactions`, {
+      const res = await authFetch(`${API_URL}/ledger/${expenseId}/reactions`, {
         method: 'DELETE'
       });
       if (res.ok) {

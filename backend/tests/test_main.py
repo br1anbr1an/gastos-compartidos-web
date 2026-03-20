@@ -93,7 +93,7 @@ def test_create_expense(client, auth_headers, setup_category):
     }
     
     response = client.post(
-        "/expenses/",
+        "/ledger/",
         headers=auth_headers,
         json=expense_data
     )
@@ -110,13 +110,13 @@ def test_read_expenses(client, auth_headers, setup_category):
     project_id = project_resp.json()["id"]
     
     client.post(
-        "/expenses/",
+        "/ledger/",
         headers=auth_headers,
         json={"description": "Gas", "amount": 40.00, "date": "2023-10-01", "project_id": project_id, "category_id": setup_category}
     )
     
     # Read expenses for project
-    response = client.get(f"/expenses/?project_id={project_id}", headers=auth_headers)
+    response = client.get(f"/ledger/?project_id={project_id}", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -127,13 +127,13 @@ def test_delete_expense(client, auth_headers, setup_category):
     project_id = project_resp.json()["id"]
     
     exp_resp = client.post(
-        "/expenses/",
+        "/ledger/",
         headers=auth_headers,
         json={"description": "To be deleted", "amount": 5.00, "date": "2023-10-01", "project_id": project_id, "category_id": setup_category}
     )
     expense_id = exp_resp.json()["id"]
     
-    response = client.delete(f"/expenses/{expense_id}", headers=auth_headers)
+    response = client.delete(f"/ledger/{expense_id}", headers=auth_headers)
     assert response.status_code == 200
     assert response.json() == {"success": True}
 
@@ -144,7 +144,7 @@ def test_delete_expense_in_closed_project(client, auth_headers, setup_category):
     
     # Create expense
     exp_resp = client.post(
-        "/expenses/",
+        "/ledger/",
         headers=auth_headers,
         json={"description": "Locked Expense", "amount": 25.00, "date": "2023-10-01", "project_id": project_id, "category_id": setup_category}
     )
@@ -154,5 +154,5 @@ def test_delete_expense_in_closed_project(client, auth_headers, setup_category):
     client.patch(f"/projects/{project_id}/close", headers=auth_headers)
     
     # Attempt to delete expense, should fail because project is closed (Returns 404 in logic or fails)
-    response = client.delete(f"/expenses/{expense_id}", headers=auth_headers)
+    response = client.delete(f"/ledger/{expense_id}", headers=auth_headers)
     assert response.status_code == 404

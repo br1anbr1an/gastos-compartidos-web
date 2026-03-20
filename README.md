@@ -65,12 +65,69 @@ alembic upgrade head
 
 ---
 
-## 🧪 CI/CD y Calidad
+## 🚀 Despliegue en Producción (Homelab)
 
-El proyecto incluye un pipeline automatizado en **GitHub Actions** (`deploy.yml`):
-- **Tests Unitarios:** Ejecución automática de `pytest` en cada push a `main` y `prod`.
-- **Docker Build:** Validación de construcción de imágenes en `main`.
-- **Auto-Deploy:** Despliegue automático a Homelab mediante el registro de contenedores (GHCR.io) al hacer push a la rama `prod`.
+El proyecto está preparado para desplegarse mediante Docker y GitHub Actions.
+
+### 1️⃣ Configuración Inicial
+1. En tu servidor (Homelab), crea la carpeta de trabajo: `mkdir -p ~/gastos && cd ~/gastos`.
+2. Descarga el `docker-compose.yml` del repositorio.
+3. Crea un archivo `.env` basado en `.env.example` con tus credenciales reales y la `SECRET_KEY` generada (`openssl rand -hex 32`).
+4. Si el repositorio es privado, inicia sesión en GHCR:
+   ```bash
+   echo "TU_GITHUB_TOKEN" | docker login ghcr.io -u TU_USUARIO --password-stdin
+   ```
+
+### 2️⃣ Primer Despliegue e Inicialización
+```bash
+docker compose pull
+docker compose up -d
+# Inicializar base de datos (solo la primera vez)
+docker compose exec -T db psql -U user -d db < backend/sql/schema.sql
+```
+
+### 3️⃣ Flujo de Actualización (CI/CD)
+El proyecto utiliza **GitHub Actions** para automatizar el despliegue:
+1. **Push a `main`:** Ejecuta tests y valida la construcción de imágenes.
+2. **Push a `prod`:** 
+   - Ejecuta tests.
+   - Construye y sube las imágenes a **GHCR.io**.
+   - Para aplicar los cambios en el servidor:
+     ```bash
+     cd ~/gastos && docker compose pull && docker compose up -d
+     ```
+*Nota: Las migraciones de base de datos se aplican automáticamente al iniciar el contenedor del backend (`alembic upgrade head`).*
+
+---
+
+## 🛠️ Mantenimiento y Upgrades Manuales
+
+Si necesitas realizar tareas de mantenimiento o forzar una actualización:
+
+### Actualizar solo las imágenes
+```bash
+docker compose pull
+docker compose up -d
+```
+
+### Gestión de Base de Datos (Alembic)
+Si hay inconsistencias con las migraciones:
+```bash
+# Ver el estado actual de las migraciones
+docker compose exec backend alembic current
+
+# Aplicar manualmente la última versión
+docker compose exec backend alembic upgrade head
+
+# Marcar la base de datos como actualizada (si ya tienes las tablas creadas)
+docker compose exec backend alembic stamp head
+```
+
+### Ver Logs del Sistema
+```bash
+docker compose logs -f          # Todos los servicios
+docker compose logs -f backend  # Solo el backend
+```
 
 ---
 
@@ -80,3 +137,30 @@ Se incluye un reporte detallado sobre futuras mejoras de escalabilidad y arquite
 
 ---
 *Desarrollado con ❤️ para organizar las finanzas compartidas de forma simple.*
+### Configuración de Nginx / Nginx Proxy Manager (SSE)
+Si usas un proxy inverso, necesitas esta configuración para que el Sync en tiempo real (SSE) funcione:
+
+#### Opción A: Pestaña "Advanced" (Recomendado)
+Pega esto en la pestaña **Advanced** de tu Proxy Host:
+```nginx
+location /api/stream {
+    proxy_pass http://frontend:80/api/stream;
+    proxy_http_version 1.1;
+    proxy_set_header Connection '';
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 24h;
+}
+```
+
+#### Opción B: Pestaña "Custom Locations" (Si no tienes pestaña Advanced)
+1. Haz clic en **Add Location**.
+2. Define: `/api/stream`, Scheme: `http`, Forward Host: `frontend`, Port: `80`.
+3. Haz clic en el icono de engranaje (configuración) de esa fila y pega:
+```nginx
+proxy_set_header Connection '';
+proxy_http_version 1.1;
+proxy_buffering off;
+proxy_cache off;
+proxy_read_timeout 24h;
+```
