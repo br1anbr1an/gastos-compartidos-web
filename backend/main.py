@@ -208,12 +208,16 @@ async def global_stream(
     token: str = Query(...),
 ):
     """Server-Sent Events endpoint. Emite un evento cuando cualquier proyecto visible cambia."""
+    print(f"[SSE] New connection attempt with token: {token[:10]}...")
     try:
         user = auth.get_current_user_from_token(token)
-    except Exception:
+        print(f"[SSE] User authenticated: {user.email}")
+    except Exception as e:
+        print(f"[SSE] Auth failed: {str(e)}")
         raise HTTPException(status_code=401, detail="Invalid token")
 
     async def event_generator():
+        print(f"[SSE] Starting generator for {user.email}")
         from fastapi.concurrency import run_in_threadpool
         from sqlalchemy import func
         last_activity_at = None
@@ -232,6 +236,7 @@ async def global_stream(
         heartbeat_counter = 0
         while not (shutdown_event.is_set() or FORCE_EXIT):
             if await request.is_disconnected():
+                print(f"[SSE] Client disconnected: {user.email}")
                 break
 
             try:
@@ -240,11 +245,13 @@ async def global_stream(
 
                 if last_activity_at is not None and current_str != last_activity_at:
                     payload = json.dumps({"updated_at": current_str})
+                    print(f"[SSE] Sending update to {user.email}: {payload}")
                     yield f"data: {payload}\n\n"
                     heartbeat_counter = 0 # Reset on data
                 else:
                     heartbeat_counter += 1
-                    if heartbeat_counter >= 7: # Every ~21 seconds (7 * 3s approx)
+                    if heartbeat_counter >= 10: # Increased to ~30s for logging visibility
+                        print(f"[SSE] Sending ping to {user.email}")
                         yield ":ping\n\n"
                         heartbeat_counter = 0
 

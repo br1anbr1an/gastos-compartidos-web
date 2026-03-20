@@ -4,10 +4,19 @@ import { Plus, Check, Folder, FileDown } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import './ProjectList.css';
 
-const API_URL = 'http://localhost:8000';
-
 export const ProjectList = () => {
-  const { projects, currentProject, switchProject, addProject, users, formatCurrency, categories, currentUser } = useExpenses();
+  const { 
+    projects, 
+    currentProject, 
+    switchProject, 
+    addProject, 
+    users, 
+    formatCurrency, 
+    categories, 
+    currentUser,
+    token,
+    API_URL
+  } = useExpenses();
   const [isCreating, setIsCreating] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [projectExpenses, setProjectExpenses] = useState({});
@@ -20,7 +29,11 @@ export const ProjectList = () => {
 
       for (const project of projects) {
         try {
-          const res = await fetch(`${API_URL}/ledger/?project_id=${project.id}`);
+          const res = await fetch(`${API_URL}/ledger/?project_id=${project.id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
           if (res.ok) {
             const data = await res.json();
             expensesMap[project.id] = data;
