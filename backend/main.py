@@ -209,12 +209,15 @@ async def global_stream(
 ):
     """Server-Sent Events endpoint. Emite un evento cuando cualquier proyecto visible cambia."""
     print(f"[SSE] New connection attempt with token: {token[:10]}...")
+    db = next(get_db())
     try:
-        user = auth.get_current_user_from_token(token)
+        user = auth.get_current_user_from_token(token, db)
         print(f"[SSE] User authenticated: {user.email}")
     except Exception as e:
         print(f"[SSE] Auth failed: {str(e)}")
         raise HTTPException(status_code=401, detail="Invalid token")
+    finally:
+        db.close()
 
     async def event_generator():
         print(f"[SSE] Starting generator for {user.email}")
