@@ -70,8 +70,8 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all for dev
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False, # Changed to False to allow "*" wildcard, as we use Bearer tokens
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -129,7 +129,7 @@ def close_project(project_id: int, db: Session = Depends(get_db), current_user: 
     return project
 
 # --- Expenses ---
-@app.get("/expenses/", response_model=List[schemas.ExpenseOut])
+@app.get("/ledger/", response_model=List[schemas.ExpenseOut])
 def read_expenses(
     project_id: int,
     skip: int = 0, 
@@ -140,7 +140,7 @@ def read_expenses(
     expenses = crud.get_expenses(db, project_id=project_id, skip=skip, limit=limit, user_id=user_id)
     return expenses
 
-@app.post("/expenses/{expense_id}/reactions", response_model=Optional[schemas.Reaction])
+@app.post("/ledger/{expense_id}/reactions", response_model=Optional[schemas.Reaction])
 def create_or_update_reaction(
     expense_id: int,
     reaction: schemas.ReactionCreate,
@@ -154,7 +154,7 @@ def create_or_update_reaction(
     
     return crud.upsert_reaction(db, expense_id=expense_id, user_id=current_user.id, emoji=reaction.emoji)
 
-@app.delete("/expenses/{expense_id}/reactions")
+@app.delete("/ledger/{expense_id}/reactions")
 def remove_reaction(
     expense_id: int,
     db: Session = Depends(get_db),
@@ -165,7 +165,7 @@ def remove_reaction(
         raise HTTPException(status_code=404, detail="Reaction not found")
     return {"success": True}
 
-@app.patch("/expenses/{expense_id}", response_model=schemas.Expense)
+@app.patch("/ledger/{expense_id}", response_model=schemas.Expense)
 def update_expense(
     expense_id: int,
     expense_update: schemas.ExpenseUpdate,
@@ -187,13 +187,13 @@ def update_expense(
     
     return result
 
-@app.post("/expenses/", response_model=schemas.Expense)
+@app.post("/ledger/", response_model=schemas.Expense)
 def create_expense(expense: schemas.ExpenseCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
     # Overwrite user_id with the authenticated user ID for safety
     expense.user_id = current_user.id
     return crud.create_expense(db=db, expense=expense)
 
-@app.delete("/expenses/{expense_id}")
+@app.delete("/ledger/{expense_id}")
 def delete_expense(expense_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
     success = crud.delete_expense(db=db, expense_id=expense_id)
     if not success:
@@ -229,6 +229,7 @@ async def global_stream(
             finally:
                 db.close()
 
+        heartbeat_counter = 0
         while not (shutdown_event.is_set() or FORCE_EXIT):
             if await request.is_disconnected():
                 break
@@ -240,6 +241,12 @@ async def global_stream(
                 if last_activity_at is not None and current_str != last_activity_at:
                     payload = json.dumps({"updated_at": current_str})
                     yield f"data: {payload}\n\n"
+                    heartbeat_counter = 0 # Reset on data
+                else:
+                    heartbeat_counter += 1
+                    if heartbeat_counter >= 7: # Every ~21 seconds (7 * 3s approx)
+                        yield ":ping\n\n"
+                        heartbeat_counter = 0
 
                 last_activity_at = current_str
             except Exception as e:
