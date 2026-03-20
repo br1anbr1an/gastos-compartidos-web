@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 
 const ExpenseContext = createContext();
 
@@ -148,26 +148,102 @@ export const ExpenseProvider = ({ children }) => {
     initData();
   }, [token]);
 
+  // --- Sync state ---
+  const [isSyncing, setIsSyncing] = useState(false);
+  const hasNewPendingChangesRef = React.useRef(false);
+
+  const refreshExpenses = async () => {
+    if (!currentProject || !token) return;
+    try {
+      setIsSyncing(true);
+      hasNewPendingChangesRef.current = false;
+      
+      const res = await authFetch(`${API_URL}/expenses/?project_id=${currentProject.id}`);
+      if (res.ok) {
+        setExpenses(await res.json());
+      }
+    } catch (err) {
+      console.error('Error refreshing expenses:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const refreshProjects = async () => {
+    if (!token) return;
+    try {
+      setIsSyncing(true);
+      const res = await authFetch(`${API_URL}/projects/`);
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(data);
+        
+        // Also update currentProject if its status changed
+        if (currentProject) {
+           const updatedCurrent = data.find(p => p.id === currentProject.id);
+           if (updatedCurrent && updatedCurrent.status !== currentProject.status) {
+               setCurrentProject(updatedCurrent);
+           }
+        }
+      }
+    } catch (err) {
+      console.error('Error refreshing projects:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const refreshRef = React.useRef(refreshExpenses);
+  const refreshProjectsRef = React.useRef(refreshProjects);
+
+  React.useEffect(() => { 
+    refreshRef.current = refreshExpenses; 
+    refreshProjectsRef.current = refreshProjects;
+  });
+
   // --- Fetch Expenses when Project Changes ---
   useEffect(() => {
     if (!currentProject || !token) return;
-    
-    // Persist active selection
     localStorage.setItem('activeProjectId', currentProject.id);
-
-    const fetchExpenses = async () => {
-        try {
-            const res = await authFetch(`${API_URL}/expenses/?project_id=${currentProject.id}`);
-            if (res.ok) {
-                const data = await res.json();
-                setExpenses(data);
-            }
-        } catch (error) {
-            console.error("Error fetching expenses:", error);
-        }
-    };
-    fetchExpenses();
+    refreshExpenses();
   }, [currentProject, token]);
+
+  // --- SSE: Global real-time sync ---
+  useEffect(() => {
+    if (!token) return;
+
+    let es = null;
+
+    const url = `${API_URL}/stream?token=${token}`;
+    es = new EventSource(url);
+
+    es.onmessage = () => {
+      if (!document.hidden) {
+        refreshRef.current();
+        refreshProjectsRef.current();
+      } else {
+        hasNewPendingChangesRef.current = true;
+      }
+    };
+
+    es.onerror = () => {
+      console.warn('[SSE] Conexión perdida, reconectando...');
+    };
+
+    const handleVisibility = () => {
+      if (!document.hidden && hasNewPendingChangesRef.current) {
+        refreshRef.current();
+        refreshProjectsRef.current();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      es.close();
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [token]);
 
 
   // --- Actions ---
@@ -378,7 +454,10 @@ export const ExpenseProvider = ({ children }) => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
+    // "YYYY-MM-DD" se interpreta como UTC medianoche → se desfasa un día en UTC-6.
+    // Añadimos T12:00:00 para anclar al mediodía local y evitar el desfase.
+    const date = new Date(`${dateString}T12:00:00`);
+    return date.toLocaleDateString('es-MX', {
       weekday: 'short',
       day: 'numeric',
       month: 'short',
@@ -416,6 +495,8 @@ export const ExpenseProvider = ({ children }) => {
         getExpensesByCategory,
         formatCurrency,
         formatDate,
+        isSyncing,
+        refreshExpenses,
       }}
     >
       {children}

@@ -1,6 +1,6 @@
 import { useExpenses } from '../context/ExpenseContext';
 import { SettlementModal } from './SettlementModal';
-import { DoorOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { DoorOpen, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import './Dashboard.css';
 
@@ -16,7 +16,8 @@ export const Dashboard = () => {
     setFilterUserId,
     filterCategoryId,
     setFilterCategoryId,
-    closeProject
+    closeProject,
+    isSyncing
   } = useExpenses();
 
   const [showSettlement, setShowSettlement] = useState(false);
@@ -116,7 +117,7 @@ export const Dashboard = () => {
   };
 
   const settlement = calculateSettlement();
-  const isProjectClosed = currentProject.closed_at !== null;
+  const isProjectClosed = currentProject.status === 'paid';
 
   return (
     <div className="dashboard">
@@ -124,7 +125,10 @@ export const Dashboard = () => {
       <div className={`sticky-header ${isScrolled ? 'visible' : ''}`}>
         <div className="sticky-header-content">
           <div className="sticky-project-info">
-            <span className="sticky-project-name">{currentProject.name}</span>
+            <span className="sticky-project-name">
+              {currentProject.name}
+              {isSyncing && <RefreshCw size={14} className="syncing-icon" style={{ marginLeft: '8px', animation: 'spin 1s linear infinite', color: 'var(--color-text-muted)' }} />}
+            </span>
             {isProjectClosed && <span className="sticky-status-badge">Cerrado</span>}
           </div>
           <div className="sticky-total">{formatCurrency(total)}</div>

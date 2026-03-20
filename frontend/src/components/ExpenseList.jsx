@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useExpenses } from '../context/ExpenseContext';
 import { Trash2, SmilePlus, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
 import { ExpenseForm } from './ExpenseForm';
+import { RefreshCw } from 'lucide-react';
 import './ExpenseList.css';
 
 export const ExpenseList = () => {
@@ -14,7 +15,8 @@ export const ExpenseList = () => {
     categories, 
     users,
     currentUser,
-    addReaction
+    addReaction,
+    refreshExpenses,
   } = useExpenses();
   const [editingId, setEditingId] = useState(null);
   const expenses = getExpensesByCurrentProject();

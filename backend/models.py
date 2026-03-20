@@ -20,6 +20,7 @@ class Project(Base):
     status = Column(String, nullable=False) # 'in_progress', 'paid'
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
     closed_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    last_activity_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
     is_private = Column(Boolean, default=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, default=0)
     user = relationship("User")

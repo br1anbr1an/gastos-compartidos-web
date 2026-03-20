@@ -1,12 +1,30 @@
-from fastapi import FastAPI, Depends, HTTPException, Query, status
+from fastapi import FastAPI, Depends, HTTPException, Query, status, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import timedelta, datetime, UTC
 from contextlib import asynccontextmanager
+import asyncio
+import json
+import signal
 import crud, models, schemas, auth
 from database import engine, get_db
+
+# Signal handling to break deadlocks during shutdown
+FORCE_EXIT = False
+
+def handle_sigint(sig, frame):
+    global FORCE_EXIT
+    FORCE_EXIT = True
+
+# Install signal handler (only in main thread)
+try:
+    signal.signal(signal.SIGINT, handle_sigint)
+except ValueError:
+    # Not in main thread, skip (e.g. during some test setups)
+    pass
 
 # Create tables (Handled by Alembic migrations)
 # models.Base.metadata.create_all(bind=engine)
@@ -26,8 +44,13 @@ def seed_categories(db: Session):
             db.add(new_cat)
     db.commit()
 
+shutdown_event = asyncio.Event()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Startup
+    app.state.shutting_down = False
+    shutdown_event.clear()
     # Startup seeding
     db = next(get_db())
     try:
@@ -35,8 +58,14 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
     yield
+    # Shutdown
+    app.state.shutting_down = True
+    shutdown_event.set()
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    title="App Gastos Compartidos",
+    lifespan=lifespan
+)
 
 # CORS
 app.add_middleware(
@@ -172,3 +201,61 @@ def delete_expense(expense_id: int, db: Session = Depends(get_db), current_user:
     return {"success": True}
 
 
+# --- SSE: Real-time expense updates ---
+@app.get("/stream")
+async def global_stream(
+    request: Request,
+    token: str = Query(...),
+):
+    """Server-Sent Events endpoint. Emite un evento cuando cualquier proyecto visible cambia."""
+    try:
+        user = auth.get_current_user_from_token(token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    async def event_generator():
+        from fastapi.concurrency import run_in_threadpool
+        from sqlalchemy import func
+        last_activity_at = None
+
+        def fetch_max_activity():
+            db = next(get_db())
+            try:
+                # Max activity of public projects OR private projects owned by user
+                query = db.query(func.max(models.Project.last_activity_at)).filter(
+                    (models.Project.is_private == False) | (models.Project.user_id == user.id)
+                )
+                return query.scalar()
+            finally:
+                db.close()
+
+        while not (shutdown_event.is_set() or FORCE_EXIT):
+            if await request.is_disconnected():
+                break
+
+            try:
+                current_max = await run_in_threadpool(fetch_max_activity)
+                current_str = str(current_max) if current_max else None
+
+                if last_activity_at is not None and current_str != last_activity_at:
+                    payload = json.dumps({"updated_at": current_str})
+                    yield f"data: {payload}\n\n"
+
+                last_activity_at = current_str
+            except Exception as e:
+                yield f"event: error\ndata: {str(e)}\n\n"
+
+            # Check for shutdown more frequently to remain responsive to SIGINT
+            for _ in range(15): # 3 seconds total (15 * 0.2s)
+                if shutdown_event.is_set() or FORCE_EXIT or await request.is_disconnected():
+                    break
+                await asyncio.sleep(0.2)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )

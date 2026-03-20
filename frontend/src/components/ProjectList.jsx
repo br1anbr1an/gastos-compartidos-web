@@ -239,7 +239,7 @@ export const ProjectList = () => {
       <div className="projects-grid">
         {projects.map((project) => {
           const total = calculateProjectTotal(project.id);
-          const settlement = project.closed_at ? calculateSettlement(project.id) : null;
+          const settlement = project.status === 'paid' ? calculateSettlement(project.id) : null;
           
           // Logic: Show if it's NOT private OR if current user is the owner
           const isOwner = currentUser && project.user_id === currentUser.id;

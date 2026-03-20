@@ -5,6 +5,8 @@
   padding-bottom: 80px; /* Space for FAB */
 }
 
+
+
 .empty-state {
   text-align: center;
   padding: var(--spacing-xl);

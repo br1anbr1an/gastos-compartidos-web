@@ -6,11 +6,11 @@ import { ExpenseForm } from './components/ExpenseForm'
 import { ProjectList } from './components/ProjectList'
 import { Modal } from './components/UI/Modal'
 import { Auth } from './components/Auth/Auth'
-import { Plus, LayoutDashboard, FolderOpen, LogOut } from 'lucide-react'
+import { Plus, LayoutDashboard, FolderOpen, LogOut, RefreshCw } from 'lucide-react'
 import './App.css'
 
 function MainLayout() {
-  const { isAuthenticated, loading, logout, currentProject } = useExpenses();
+  const { isAuthenticated, loading, logout, currentProject, isSyncing } = useExpenses();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState('dashboard');
 
@@ -25,7 +25,14 @@ function MainLayout() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>{currentView === 'dashboard' ? 'Registro de Gastos' : 'Mis Proyectos'}</h1>
+        <h1>
+          {currentView === 'dashboard' ? (currentProject?.name || 'Registro de Gastos') : 'Mis Proyectos'}
+          {isSyncing && currentView === 'dashboard' && (
+            <span className="sync-indicator-mini">
+              <RefreshCw size={16} />
+            </span>
+          )}
+        </h1>
         <button onClick={logout} className="header-icon-btn" aria-label="Cerrar Sesión" title="Cerrar Sesión">
           <LogOut size={24} />
         </button>
