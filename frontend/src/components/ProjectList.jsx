@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useExpenses } from '../context/ExpenseContext';
-import { Plus, Check, Folder, FileDown } from 'lucide-react';
+import { Plus, Check, Folder, FileDown, Info } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import './ProjectList.css';
 
@@ -21,6 +21,7 @@ export const ProjectList = () => {
   const [newProjectName, setNewProjectName] = useState('');
   const [projectExpenses, setProjectExpenses] = useState({});
   const [isPrivate, setIsPrivate] = useState(false);
+  const [showInfoId, setShowInfoId] = useState(null);
 
   // Fetch expenses for all projects
   useEffect(() => {
@@ -198,6 +199,11 @@ export const ProjectList = () => {
     setIsCreating(false);
   };
 
+  const toggleInfo = (e, projectId) => {
+    e.stopPropagation();
+    setShowInfoId(showInfoId === projectId ? null : projectId);
+  };
+
   return (
     <div className="project-list-container">
       <div className="project-header">
@@ -274,16 +280,34 @@ export const ProjectList = () => {
                     <h3>{project.name}</h3>
                     <div className="expense-meta">
                       <span className={`status-badge ${project.is_private ? 'private' : 'public'}`}>
-                      {project.is_private ? 'Privado' : 'Público'}
+                        {project.is_private ? 'Privado' : 'Público'}
                       </span>
                       <span className={`status-badge ${project.status}`}>
                         {project.status === 'in_progress' ? 'En Progreso' : 'Cerrado'}
                       </span>
                     </div>
                   </div>
+
                   {!isOwner && !project.is_private && settlement && (
-                    <div className="project-settlement">
+                    <div className="project-settlement-desktop">
                       {settlement.debtor} pagó {formatCurrency(settlement.amount)} a {settlement.creditor}
+                    </div>
+                  )}
+
+                  {settlement && (
+                    <div className="project-settlement-mobile">
+                      <button 
+                        className={`info-tooltip-btn ${showInfoId === project.id ? 'active' : ''}`}
+                        onClick={(e) => toggleInfo(e, project.id)}
+                      >
+                        <Info size={18} />
+                      </button>
+                      {showInfoId === project.id && (
+                        <div className="settlement-popover" onClick={(e) => e.stopPropagation()}>
+                          <div className="popover-arrow"></div>
+                          {settlement.debtor} pagó {formatCurrency(settlement.amount)} a {settlement.creditor}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

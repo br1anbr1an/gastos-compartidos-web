@@ -19,6 +19,7 @@ export const ExpenseProvider = ({ children }) => {
   const [filterCategoryId, setFilterCategoryId] = useState('all');
   const [categories, setCategories] = useState([]);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [currentView, setCurrentView] = useState('dashboard');
 
   const isAuthenticated = !!token && !!currentUser;
 
@@ -272,7 +273,10 @@ export const ExpenseProvider = ({ children }) => {
 
   const switchProject = (projectId) => {
     const project = projects.find(p => p.id === projectId);
-    if (project) setCurrentProject(project);
+    if (project) {
+      setCurrentProject(project);
+      setCurrentView('dashboard');
+    }
   };
 
   const addExpense = async (expenseData) => {
@@ -499,6 +503,8 @@ export const ExpenseProvider = ({ children }) => {
         refreshExpenses,
         token,
         API_URL,
+        currentView,
+        setCurrentView,
       }}
     >
       {children}

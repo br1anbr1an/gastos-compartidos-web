@@ -192,6 +192,9 @@
   cursor: pointer;
   position: relative;
   transition: transform 0.2s, border-color 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible; /* Allow popover to be visible */
 }
 
 .project-card:active {
@@ -264,11 +267,117 @@
   padding-right: 2rem; /* Space for active-check */
 }
 
-.project-settlement {
+.project-settlement-desktop {
   font-size: 0.75rem;
   color: var(--color-text-muted);
   font-style: italic;
   margin-left: auto;
+}
+
+.project-settlement-mobile {
+  position: relative;
+  display: none;
+}
+
+.info-tooltip-btn {
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.info-tooltip-btn:hover, .info-tooltip-btn.active {
+  color: var(--color-primary);
+  background-color: rgba(139, 92, 246, 0.1);
+}
+
+.settlement-popover {
+  position: absolute;
+  bottom: 150%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 41, 59, 0.98);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  color: white;
+  font-size: 0.85rem;
+  z-index: 100;
+  width: max-content;
+  max-width: 220px;
+  animation: popIn 0.2s ease-out;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.popover-arrow {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid rgba(30, 41, 59, 0.98);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(5px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 610px) {
+  .project-card {
+    padding: var(--spacing-sm) var(--spacing-md);
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .project-info {
+    min-width: 140px;
+    flex: 1 1 auto;
+  }
+
+  .project-total {
+    font-size: 1.1rem;
+    padding-right: 0;
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: 4px;
+    padding-top: 4px;
+  }
+
+  .project-settlement-desktop {
+    display: none;
+  }
+
+  .project-settlement-mobile {
+    display: block;
+    margin-left: auto;
+    align-self: center;
+  }
+  
+  .project-header {
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .active-check {
+    top: auto;
+    bottom: 12px;
+    right: 12px;
+    transform: none;
+  }
 }
 
 .active-check {
