@@ -22,6 +22,7 @@ class Project(Base):
     closed_at = Column(TIMESTAMP(timezone=True), nullable=True)
     last_activity_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
     is_private = Column(Boolean, default=False)
+    is_archived = Column(Boolean, default=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, default=0)
     user = relationship("User")
 

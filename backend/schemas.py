@@ -29,6 +29,7 @@ class ProjectCreate(BaseModel):
     name: str
     status: str = "in_progress"
     is_private: bool = False
+    is_archived: bool = False
     user_id: Optional[int] = None
 
 class Project(BaseModel):
@@ -38,6 +39,7 @@ class Project(BaseModel):
     created_at: datetime.datetime
     closed_at: Optional[datetime.datetime] = None
     is_private: bool
+    is_archived: Optional[bool] = False
     user_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)

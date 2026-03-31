@@ -113,8 +113,14 @@ def read_categories(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
 
 # --- Projects ---
 @app.get("/projects/", response_model=List[schemas.Project])
-def read_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
-    projects = crud.get_projects(db, skip=skip, limit=limit)
+def read_projects(
+    skip: int = 0, 
+    limit: int = 100, 
+    include_archived: bool = False,
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    projects = crud.get_projects(db, skip=skip, limit=limit, include_archived=include_archived)
     return projects
 
 @app.post("/projects/", response_model=schemas.Project)
@@ -126,6 +132,13 @@ def close_project(project_id: int, db: Session = Depends(get_db), current_user: 
     project = crud.close_project(db=db, project_id=project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+@app.patch("/projects/{project_id}/archive", response_model=schemas.Project)
+def archive_project(project_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    project = crud.archive_project(db=db, project_id=project_id)
+    if not project:
+        raise HTTPException(status_code=400, detail="Project not found or not closed")
     return project
 
 # --- Expenses ---

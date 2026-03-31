@@ -204,3 +204,35 @@ def test_delete_expense_closed_project_fails(db_session, test_project, test_cate
     # Verify it's still there
     expenses = crud.get_expenses(db_session, test_project.id)
     assert len(expenses) == 1
+
+def test_archive_project(db_session, test_project):
+    # Should not archive if not paid
+    result = crud.archive_project(db_session, test_project.id)
+    assert result is None
+    
+    # Close project first
+    crud.close_project(db_session, test_project.id)
+    
+    # Now archive should work
+    archived = crud.archive_project(db_session, test_project.id)
+    assert archived is not None
+    assert archived.is_archived is True
+
+def test_get_projects_filtering(db_session):
+    # Create two projects
+    p1 = crud.create_project(db_session, schemas.ProjectCreate(name="Active Project"))
+    p2 = crud.create_project(db_session, schemas.ProjectCreate(name="To be Archived"))
+    
+    # Close and archive p2
+    crud.close_project(db_session, p2.id)
+    crud.archive_project(db_session, p2.id)
+    
+    # Get only active
+    active = crud.get_projects(db_session, include_archived=False)
+    assert any(p.id == p1.id for p in active)
+    assert not any(p.id == p2.id for p in active)
+    
+    # Get all including archived
+    all_projects = crud.get_projects(db_session, include_archived=True)
+    assert any(p.id == p1.id for p in all_projects)
+    assert any(p.id == p2.id for p in all_projects)

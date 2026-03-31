@@ -24,8 +24,11 @@ def create_category(db: Session, category: schemas.CategoryCreate):
     return db_category
 
 # Projects
-def get_projects(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Project).offset(skip).limit(limit).all()
+def get_projects(db: Session, skip: int = 0, limit: int = 100, include_archived: bool = False):
+    query = db.query(models.Project)
+    if not include_archived:
+        query = query.filter(models.Project.is_archived == False)
+    return query.offset(skip).limit(limit).all()
 
 def create_project(db: Session, project: schemas.ProjectCreate):
     db_project = models.Project(**project.model_dump())
@@ -38,7 +41,7 @@ def get_project(db: Session, project_id: int):
     return db.query(models.Project).filter(models.Project.id == project_id).first()
 
 def close_project(db: Session, project_id: int):
-    from datetime import date, datetime, UTC
+    from datetime import datetime, UTC
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if project:
         project.closed_at = datetime.now(UTC)
@@ -47,6 +50,16 @@ def close_project(db: Session, project_id: int):
         db.commit()
         db.refresh(project)
     return project
+
+def archive_project(db: Session, project_id: int):
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if project and project.status == "paid":
+        project.is_archived = True
+        touch_project(db, project_id)
+        db.commit()
+        db.refresh(project)
+        return project
+    return None
 
 # Expenses
 def get_expenses(db: Session, project_id: int, skip: int = 0, limit: int = 100, user_id: int = 0):

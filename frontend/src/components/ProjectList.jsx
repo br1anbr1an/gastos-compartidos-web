@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useExpenses } from '../context/ExpenseContext';
-import { Plus, Check, Folder, FileDown, Info } from 'lucide-react';
+import { Plus, Check, Folder, FileDown, Info, ChevronDown, Archive } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import './ProjectList.css';
 
@@ -15,13 +15,16 @@ export const ProjectList = () => {
     categories, 
     currentUser,
     token,
-    API_URL
+    API_URL,
+    archiveProject
   } = useExpenses();
   const [isCreating, setIsCreating] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [projectExpenses, setProjectExpenses] = useState({});
   const [isPrivate, setIsPrivate] = useState(false);
   const [showInfoId, setShowInfoId] = useState(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [showClosed, setShowClosed] = useState(false);
 
   // Fetch expenses for all projects
   useEffect(() => {
@@ -204,6 +207,98 @@ export const ProjectList = () => {
     setShowInfoId(showInfoId === projectId ? null : projectId);
   };
 
+  const handleArchive = async (e, projectId) => {
+    e.stopPropagation();
+    if (window.confirm('¿Estás seguro de que quieres archivar este proyecto? Dejará de aparecer en la lista principal.')) {
+      await archiveProject(projectId);
+    }
+  };
+
+  const activeProjects = projects.filter(p => !p.is_archived && p.status === 'in_progress');
+  const closedProjects = projects.filter(p => !p.is_archived && p.status === 'paid');
+  const archivedProjects = projects.filter(p => p.is_archived);
+
+  const renderProjectCard = (project) => {
+    const total = calculateProjectTotal(project.id);
+    const settlement = project.status === 'paid' ? calculateSettlement(project.id) : null;
+    
+    // Logic: Show if it's NOT private OR if current user is the owner
+    const isOwner = currentUser && project.user_id === currentUser.id;
+    const shouldShow = !project.is_private || isOwner;
+
+    if (!shouldShow) return null;
+
+    return (
+      <div
+        key={project.id}
+        className={`project-card ${currentProject?.id === project.id ? 'active' : ''} ${project.is_archived ? 'archived' : ''}`}
+        onClick={() => switchProject(project.id)}
+      >
+        <div className="project-icon">
+          <Folder size={24} />
+        </div>
+        <div className="project-info">
+          <div className="project-header">
+            <div className="project-title-section">
+              <h3>{project.name}</h3>
+              <div className="expense-meta">
+                <span className={`status-badge ${project.is_private ? 'private' : 'public'}`}>
+                  {project.is_private ? 'Privado' : 'Público'}
+                </span>
+                <span className={`status-badge ${project.is_archived ? 'archived' : project.status}`}>
+                  {project.is_archived ? 'Archivado' : project.status === 'in_progress' ? 'En Progreso' : 'Cerrado'}
+                </span>
+              </div>
+            </div>
+
+            <div className="project-actions">
+              {!isOwner && !project.is_private && settlement && (
+                <div className="project-settlement-desktop">
+                  {settlement.debtor} pagó {formatCurrency(settlement.amount)} a {settlement.creditor}
+                </div>
+              )}
+
+              {settlement && (
+                <div className="project-settlement-mobile">
+                  <button 
+                    className={`info-tooltip-btn ${showInfoId === project.id ? 'active' : ''}`}
+                    onClick={(e) => toggleInfo(e, project.id)}
+                  >
+                    <Info size={18} />
+                  </button>
+                  {showInfoId === project.id && (
+                    <div className="settlement-popover" onClick={(e) => e.stopPropagation()}>
+                      <div className="popover-arrow"></div>
+                      {settlement.debtor} pagó {formatCurrency(settlement.amount)} a {settlement.creditor}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {project.status === 'paid' && !project.is_archived && shouldShow && (
+                <button 
+                  className="archive-project-btn"
+                  onClick={(e) => handleArchive(e, project.id)}
+                  title="Archivar Proyecto"
+                >
+                  <Archive size={18} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="project-total">
+          {formatCurrency(total)}
+        </div>
+        {currentProject?.id === project.id && (
+          <div className="active-check">
+            <Check size={16} />
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="project-list-container">
       <div className="project-header">
@@ -256,81 +351,46 @@ export const ProjectList = () => {
       )}
 
       <div className="projects-grid">
-        {projects.map((project) => {
-          const total = calculateProjectTotal(project.id);
-          const settlement = project.status === 'paid' ? calculateSettlement(project.id) : null;
-          
-          // Logic: Show if it's NOT private OR if current user is the owner
-          const isOwner = currentUser && project.user_id === currentUser.id;
-          const shouldShow = !project.is_private || isOwner;
-
-          if (!shouldShow) return null;
-
-          return (<div
-              key={project.id}
-              className={`project-card ${currentProject?.id === project.id ? 'active' : ''}`}
-              onClick={() => switchProject(project.id)}
-            >
-              <div className="project-icon">
-                <Folder size={24} />
-              </div>
-              <div className="project-info">
-                <div className="project-header">
-                  <div className="project-title-section">
-                    <h3>{project.name}</h3>
-                    <div className="expense-meta">
-                      <span className={`status-badge ${project.is_private ? 'private' : 'public'}`}>
-                        {project.is_private ? 'Privado' : 'Público'}
-                      </span>
-                      <span className={`status-badge ${project.status}`}>
-                        {project.status === 'in_progress' ? 'En Progreso' : 'Cerrado'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {!isOwner && !project.is_private && settlement && (
-                    <div className="project-settlement-desktop">
-                      {settlement.debtor} pagó {formatCurrency(settlement.amount)} a {settlement.creditor}
-                    </div>
-                  )}
-
-                  {settlement && (
-                    <div className="project-settlement-mobile">
-                      <button 
-                        className={`info-tooltip-btn ${showInfoId === project.id ? 'active' : ''}`}
-                        onClick={(e) => toggleInfo(e, project.id)}
-                      >
-                        <Info size={18} />
-                      </button>
-                      {showInfoId === project.id && (
-                        <div className="settlement-popover" onClick={(e) => e.stopPropagation()}>
-                          <div className="popover-arrow"></div>
-                          {settlement.debtor} pagó {formatCurrency(settlement.amount)} a {settlement.creditor}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="project-total">
-                {formatCurrency(total)}
-              </div>
-              {/* <button 
-                className="export-btn"
-                onClick={(e) => exportToExcel(project, e)}
-                title="Exportar a Excel"
-              >
-                <FileDown size={18} />
-              </button> */}
-              {currentProject?.id === project.id && (
-                <div className="active-check">
-                  <Check size={16} />
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {activeProjects.map(project => renderProjectCard(project))}
       </div>
+
+      {closedProjects.length > 0 && (
+        <div className="collapsible-section closed-section">
+          <button 
+            className={`section-toggle-btn ${showClosed ? 'open' : ''}`}
+            onClick={() => setShowClosed(!showClosed)}
+          >
+            <ChevronDown size={20} className="chevron-icon" />
+            <span>Proyectos cerrados</span>
+            <span className="section-count">({closedProjects.length})</span>
+          </button>
+          
+          {showClosed && (
+            <div className="projects-grid closed-grid">
+              {closedProjects.map(project => renderProjectCard(project))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {archivedProjects.length > 0 && (
+        <div className="collapsible-section archived-section">
+          <button 
+            className={`section-toggle-btn ${showArchived ? 'open' : ''}`}
+            onClick={() => setShowArchived(!showArchived)}
+          >
+            <ChevronDown size={20} className="chevron-icon" />
+            <span>Proyectos archivados</span>
+            <span className="section-count">({archivedProjects.length})</span>
+          </button>
+          
+          {showArchived && (
+            <div className="projects-grid archived-grid">
+              {archivedProjects.map(project => renderProjectCard(project))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
