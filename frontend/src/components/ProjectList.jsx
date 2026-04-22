@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useExpenses } from '../context/ExpenseContext';
 import { Plus, Check, Folder, FileDown, Info, ChevronDown, Archive } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { ConfirmModal } from './UI/ConfirmModal';
 import './ProjectList.css';
 
 export const ProjectList = () => {
@@ -25,6 +26,8 @@ export const ProjectList = () => {
   const [showInfoId, setShowInfoId] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
+  const [archiveConfirmId, setArchiveConfirmId] = useState(null);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   // Fetch expenses for all projects
   useEffect(() => {
@@ -207,11 +210,17 @@ export const ProjectList = () => {
     setShowInfoId(showInfoId === projectId ? null : projectId);
   };
 
-  const handleArchive = async (e, projectId) => {
+  const handleArchive = (e, projectId) => {
     e.stopPropagation();
-    if (window.confirm('¿Estás seguro de que quieres archivar este proyecto? Dejará de aparecer en la lista principal.')) {
-      await archiveProject(projectId);
-    }
+    setArchiveConfirmId(projectId);
+  };
+
+  const confirmArchive = async () => {
+    if (!archiveConfirmId) return;
+    setIsArchiving(true);
+    await archiveProject(archiveConfirmId);
+    setIsArchiving(false);
+    setArchiveConfirmId(null);
   };
 
   const activeProjects = projects.filter(p => !p.is_archived && p.status === 'in_progress');
@@ -391,6 +400,17 @@ export const ProjectList = () => {
           )}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!archiveConfirmId}
+        onClose={() => setArchiveConfirmId(null)}
+        onConfirm={confirmArchive}
+        title="Archivar Proyecto"
+        message="¿Estás seguro de que quieres archivar este proyecto? Dejará de aparecer en la lista principal y se moverá a la sección de archivados."
+        confirmText="Archivar"
+        variant="danger"
+        isLoading={isArchiving}
+      />
     </div>
   );
 };

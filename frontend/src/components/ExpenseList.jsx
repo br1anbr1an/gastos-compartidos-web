@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useExpenses } from '../context/ExpenseContext';
-import { Trash2, SmilePlus, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
+import { RefreshCw, Trash2, SmilePlus, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
 import { ExpenseForm } from './ExpenseForm';
-import { RefreshCw } from 'lucide-react';
+import { ConfirmModal } from './UI/ConfirmModal';
 import './ExpenseList.css';
 
 export const ExpenseList = () => {
@@ -21,6 +21,8 @@ export const ExpenseList = () => {
   const [editingId, setEditingId] = useState(null);
   const expenses = getExpensesByCurrentProject();
   const [expandedIds, setExpandedIds] = useState(new Set());
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 // ... (omitting groupedExpenses and sortedDates for brevity, will apply carefully)
 // Actual replacement below
 
@@ -157,7 +159,7 @@ export const ExpenseList = () => {
                           </button>
                           <button 
                             className="delete-btn"
-                            onClick={() => removeExpense(expense.id)}
+                            onClick={() => setDeleteConfirmId(expense.id)}
                             aria-label="Eliminar gasto"
                           >
                             <Trash2 size={18} />
@@ -185,6 +187,21 @@ export const ExpenseList = () => {
           </div>
         </div>
       ))}
+      <ConfirmModal
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={async () => {
+          setIsDeleting(true);
+          await removeExpense(deleteConfirmId);
+          setIsDeleting(false);
+          setDeleteConfirmId(null);
+        }}
+        title="Eliminar Gasto"
+        message="¿Estás seguro de que quieres eliminar este gasto? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

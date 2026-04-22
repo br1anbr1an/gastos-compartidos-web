@@ -1,4 +1,4 @@
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 import './SettlementModal.css';
 
@@ -63,6 +63,11 @@ export const SettlementModal = ({ isOpen, onClose, settlement, onConfirm, curren
               </p>
             </div>
           </div>)}
+
+        <div className="settlement-warning">
+          <AlertTriangle size={20} />
+          <p>Esta acción es irreversible. Una vez cerrado el proyecto, no podrás añadir, editar ni eliminar gastos.</p>
+        </div>
 
         <div className="settlement-actions">
           <button className="btn-secondary" onClick={onClose} disabled={isClosing}>
