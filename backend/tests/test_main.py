@@ -156,3 +156,31 @@ def test_delete_expense_in_closed_project(client, auth_headers, setup_category):
     # Attempt to delete expense, should fail because project is closed (Returns 404 in logic or fails)
     response = client.delete(f"/ledger/{expense_id}", headers=auth_headers)
     assert response.status_code == 404
+
+def test_archive_project_endpoint(client, auth_headers):
+    # 1. Create and close project (only closed can be archived)
+    resp = client.post("/projects/", headers=auth_headers, json={"name": "To Archive", "status": "in_progress"})
+    project_id = resp.json()["id"]
+    client.patch(f"/projects/{project_id}/close", headers=auth_headers)
+    
+    # 2. Archive it
+    arch_resp = client.patch(f"/projects/{project_id}/archive", headers=auth_headers)
+    assert arch_resp.status_code == 200
+    assert arch_resp.json()["is_archived"] is True
+
+def test_read_projects_filtering(client, auth_headers):
+    # 1. Archive one project
+    resp = client.post("/projects/", headers=auth_headers, json={"name": "Hidden Project", "status": "in_progress"})
+    project_id = resp.json()["id"]
+    client.patch(f"/projects/{project_id}/close", headers=auth_headers)
+    client.patch(f"/projects/{project_id}/archive", headers=auth_headers)
+    
+    # 2. Read without archived (default)
+    resp_no_archived = client.get("/projects/", headers=auth_headers)
+    data_no = resp_no_archived.json()
+    assert not any(p.get("id") == project_id for p in data_no)
+    
+    # 3. Read with archived
+    resp_with_archived = client.get("/projects/?include_archived=true", headers=auth_headers)
+    data_with = resp_with_archived.json()
+    assert any(p.get("id") == project_id and p.get("is_archived") for p in data_with)

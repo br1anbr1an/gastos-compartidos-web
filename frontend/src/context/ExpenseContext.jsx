@@ -19,6 +19,7 @@ export const ExpenseProvider = ({ children }) => {
   const [filterCategoryId, setFilterCategoryId] = useState('all');
   const [categories, setCategories] = useState([]);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [currentView, setCurrentView] = useState('dashboard');
 
   const isAuthenticated = !!token && !!currentUser;
 
@@ -112,8 +113,8 @@ export const ExpenseProvider = ({ children }) => {
            setUsers([userData]); // Fallback
         }
 
-        // 2. Fetch Projects
-        const projectsRes = await authFetch(`${API_URL}/projects/`);
+        // 2. Fetch Projects (Include archived)
+        const projectsRes = await authFetch(`${API_URL}/projects/?include_archived=true`);
         const projectsData = await projectsRes.json();
         setProjects(projectsData);
 
@@ -173,7 +174,7 @@ export const ExpenseProvider = ({ children }) => {
     if (!token) return;
     try {
       setIsSyncing(true);
-      const res = await authFetch(`${API_URL}/projects/`);
+      const res = await authFetch(`${API_URL}/projects/?include_archived=true`);
       if (res.ok) {
         const data = await res.json();
         setProjects(data);
@@ -272,7 +273,10 @@ export const ExpenseProvider = ({ children }) => {
 
   const switchProject = (projectId) => {
     const project = projects.find(p => p.id === projectId);
-    if (project) setCurrentProject(project);
+    if (project) {
+      setCurrentProject(project);
+      setCurrentView('dashboard');
+    }
   };
 
   const addExpense = async (expenseData) => {
@@ -357,6 +361,33 @@ export const ExpenseProvider = ({ children }) => {
       return false;
     } catch (error) {
       console.error("Error closing project:", error);
+      return false;
+    }
+  };
+
+  const archiveProject = async (projectId) => {
+    try {
+      const res = await authFetch(`${API_URL}/projects/${projectId}/archive`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'}
+      });
+      
+      if (res.ok) {
+        const updatedProject = await res.json();
+        setProjects(prev => prev.map(p => p.id === projectId ? updatedProject : p));
+        
+        // If current project is the one being archived, switch to the first non-archived project
+        if (currentProject?.id === projectId) {
+          const nextProject = projects.find(p => p.id !== projectId && !p.is_archived);
+          if (nextProject) {
+            setCurrentProject(nextProject);
+          }
+        }
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error archiving project:", error);
       return false;
     }
   };
@@ -489,6 +520,7 @@ export const ExpenseProvider = ({ children }) => {
         updateExpense,
         removeExpense,
         closeProject,
+        archiveProject,
         addReaction,
         removeReaction,
         getExpensesByCurrentProject,
@@ -499,6 +531,8 @@ export const ExpenseProvider = ({ children }) => {
         refreshExpenses,
         token,
         API_URL,
+        currentView,
+        setCurrentView,
       }}
     >
       {children}

@@ -10,9 +10,16 @@ import { Plus, LayoutDashboard, FolderOpen, LogOut, RefreshCw } from 'lucide-rea
 import './App.css'
 
 function MainLayout() {
-  const { isAuthenticated, loading, logout, currentProject, isSyncing } = useExpenses();
+  const { 
+    isAuthenticated, 
+    loading, 
+    logout, 
+    currentProject, 
+    isSyncing,
+    currentView,
+    setCurrentView
+  } = useExpenses();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentView, setCurrentView] = useState('dashboard');
 
   if (loading) {
     return <div className="loading-screen">Cargando...</div>;

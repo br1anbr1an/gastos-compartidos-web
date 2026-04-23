@@ -186,15 +186,23 @@ export const Dashboard = () => {
                   <span className="user-amount">{formatCurrency(user1Total)}</span>
                 </div>
                 
-                <div className="progress-bar-container">
-                  <div 
-                    className="progress-bar-left" 
-                    style={{ width: `${user1Percentage}%` }}
-                  ></div>
-                  <div 
-                    className="progress-bar-right" 
-                    style={{ width: `${user2Percentage}%` }}
-                  ></div>
+                <div className="progress-section">
+                  <div className="progress-bar-container">
+                    <div 
+                      className="progress-bar-left" 
+                      style={{ width: `${user1Percentage}%` }}
+                    ></div>
+                    <div 
+                      className="progress-bar-right" 
+                      style={{ width: `${user2Percentage}%` }}
+                    ></div>
+                  </div>
+                  
+                  {isProjectClosed && settlement && (
+                    <div className="settlement-dashboard-legend">
+                      {settlement.debtor} pagó {settlement.amount} a {settlement.creditor}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="user-stat-side">
